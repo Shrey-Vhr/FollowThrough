@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import FRONTEND_ORIGIN
 from app.api import meetings, wispr
+from app.agents import api_dev, api_proposals
 
 app = FastAPI(title="FollowThrough API")
 
@@ -20,3 +21,5 @@ def health():
 
 # app.include_router(meetings.router)
 # app.include_router(wispr.router)
+app.include_router(api_proposals.router)
+app.include_router(api_dev.router)

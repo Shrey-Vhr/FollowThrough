@@ -26,6 +26,7 @@ class VoiceState(TypedDict, total=False):
     command: str
     today: str
     proposals: list[dict]
+    numbering: dict[int, int]  # proposal id -> number shown to the user (display_no)
     people: list[dict]
     raw_actions: list[dict]
     actions: list[dict]
@@ -33,12 +34,15 @@ class VoiceState(TypedDict, total=False):
     preview: str
 
 
-def _ids(ids: list[int]) -> str:
-    return ", ".join(f"#{i}" for i in ids)
+def _ids(ids: list[int], numbering: dict[int, int] | None = None) -> str:
+    """'#1, #2' using the numbers the user sees."""
+    numbering = numbering or {}
+    return ", ".join(f"#{numbering.get(i, i)}" for i in ids)
 
 
 async def parse(state: VoiceState) -> dict:
-    lines = [f"{p['id']}. {summarize_proposal(p)}" for p in state["proposals"]]
+    numbering = state["numbering"]
+    lines = [f"{numbering[p['id']]}. {summarize_proposal(p)}" for p in state["proposals"]]
     messages = build_voice_messages(state["command"], state["today"], lines, state["people"])
     result: VoiceCommandResult = await get_structured_model(VoiceCommandResult).ainvoke(messages)
     return {"raw_actions": [a.model_dump() for a in result.actions]}
@@ -62,16 +66,16 @@ def _to_iso(raw: str, today: str) -> str | None:
 
 
 def normalize(state: VoiceState) -> dict:
-    known = {p["id"] for p in state["proposals"]}
+    by_number = {n: pid for pid, n in state["numbering"].items()}  # the LLM speaks display numbers
     warnings = list(state.get("warnings", []))
     cleaned: list[dict] = []
     for raw in state["raw_actions"]:
         kind = raw["action"]
         ids = list(dict.fromkeys(raw.get("proposal_ids") or []))
-        missing = [i for i in ids if i not in known]
+        missing = [i for i in ids if i not in by_number]
         if missing:
             warnings.append(f"There is no proposal {_ids(missing)}.")
-        ids = [i for i in ids if i in known]
+        ids = [by_number[i] for i in ids if i in by_number]
         if not ids:
             continue
         a = {"action": kind, "proposal_ids": ids, "to": None, "date": None, "text": None}
@@ -119,18 +123,18 @@ def validate(state: VoiceState) -> dict:
             if a["action"] == "approve":
                 a["proposal_ids"] = [i for i in a["proposal_ids"] if i not in rejected]
         actions = [a for a in actions if a["proposal_ids"]]
-        warnings.append(f"{_ids(both)} was both approved and rejected; I kept reject.")
+        warnings.append(f"{_ids(both, state["numbering"])} was both approved and rejected; I kept reject.")
 
     for a in actions:
         if a["action"] in ("reassign", "set_deadline"):
             off = [i for i in a["proposal_ids"] if kinds.get(i) != "notion_task"]
             if off:
-                warnings.append(f"{a['action']} only applies to tasks, but {_ids(off)} is not a task.")
+                warnings.append(f"{a['action']} only applies to tasks, but {_ids(off, state["numbering"])} is not a task.")
     return {"actions": actions, "warnings": warnings}
 
 
 def preview(state: VoiceState) -> dict:
-    text = preview_actions(state["proposals"], state["actions"])
+    text = preview_actions(state["proposals"], state["actions"], state["numbering"])
     notes = " ".join(f"Note: {w}" for w in state["warnings"])
     return {"preview": f"{text} {notes}".strip()}
 
@@ -155,7 +159,12 @@ _graph = None
 async def parse_voice_command(
     command: str, proposals: list[dict], people: list[dict], today: str | None = None
 ) -> dict:
-    """Parse a dictated command into {"actions", "preview", "warnings"}. Executes nothing."""
+    """Parse a dictated command into {"actions", "preview", "warnings"}. Executes nothing.
+
+    The LLM sees each proposal's `display_no` (default: 1..N in id order); actions and the
+    returned proposal_ids use the real proposal ids."""
+    proposals = sorted(proposals, key=lambda p: p["id"])
+    numbering = {p["id"]: p.get("display_no") or n for n, p in enumerate(proposals, 1)}
     global _graph
     _graph = _graph or build_voice_graph()
     out = await _graph.ainvoke(
@@ -163,6 +172,7 @@ async def parse_voice_command(
             "command": command,
             "today": today or date.today().isoformat(),
             "proposals": proposals,
+            "numbering": numbering,
             "people": people,
             "warnings": [],
         }

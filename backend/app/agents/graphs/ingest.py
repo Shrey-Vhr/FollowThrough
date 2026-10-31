@@ -295,6 +295,8 @@ class IngestNodes:
         for task, result in zip(open_tasks, results):
             if result.update == "not_mentioned":
                 continue
+            if result.update in ("recommitted", "completed"):
+                events += self._supersede_pending(task, state["run_id"])
             record, message, dup_idx = await self._apply_update(task, result, items, base)
             self.store.save_task_update(task["id"], meeting_id, result.update, result.quote)
             updates.append(record)
@@ -314,6 +316,26 @@ class IngestNodes:
             "new_task_items": remaining,
             "events": [summary, *events],
         }
+
+    def _supersede_pending(self, task: dict, run_id: str) -> list[dict]:
+        """A later meeting changed this task, so still-pending proposals about it from earlier runs
+        (the task itself, or Slack nudges tied to its issues) are stale."""
+        issue_ids = {i["id"] for i in self.store.get_open_issues() if i.get("task_id") == task["id"]}
+        stale = [
+            p for p in self.store.get_proposals(status="pending")
+            if p["run_id"] != run_id
+            and (p.get("task_id") == task["id"] or (p.get("issue_id") is not None and p["issue_id"] in issue_ids))
+        ]
+        for p in stale:
+            self.store.update_proposal(p["id"], {"status": "superseded"})
+        if not stale:
+            return []
+        ids = [p["id"] for p in stale]
+        return [_emit(
+            "match_open_tasks",
+            f"Superseded {len(stale)} pending proposals for '{task['title']}'",
+            {"task_id": task["id"], "proposal_ids": ids},
+        )]
 
     async def _apply_update(self, task: dict, result: TaskUpdateMatch, items: list[dict], base: datetime):
         """Apply one task update to the store -> (record, message, duplicate new-item index)."""

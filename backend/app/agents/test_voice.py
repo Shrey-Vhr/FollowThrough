@@ -14,16 +14,18 @@ PEOPLE = [
 
 
 def _p(pid, kind, **payload):
-    return {"id": pid, "kind": kind, "status": "pending", "payload": payload}
+    # real ids start at 12 (earlier ones are already sent); the user and the LLM see display_no 1..7
+    return {"id": pid, "display_no": pid - 11, "kind": kind, "status": "pending", "payload": payload}
 
 
 PROPOSALS = [
-    _p(1, "notion_task", title="Integrate Razorpay", owner="Pragti", due_date="2026-11-20"),
-    _p(2, "notion_task", title="Make landing page live", owner="Shrey Vohra", due_date=None),
-    _p(3, "slack_message", channel="#tiffinly", text="Nobody owns 'Fix OTP login bug' yet — who can take it?"),
-    _p(4, "slack_message", channel="@Pragti", text="Can you confirm a date for 'Finish API spec'?"),
-    _p(5, "slack_message", channel="#tiffinly", text="Launch Review summary: 3 conflicts found..."),
-    _p(6, "notion_task", title="Fix OTP login bug", owner=None, due_date=None),
+    _p(12, "notion_task", title="Integrate Razorpay", owner="Pragti", due_date="2026-11-20"),
+    _p(13, "notion_task", title="Make landing page live", owner="Shrey Vohra", due_date=None),
+    _p(14, "slack_message", channel="#tiffinly", text="Nobody owns 'Fix OTP login bug' yet — who can take it?"),
+    _p(15, "slack_message", channel="@Pragti", text="Can you confirm a date for 'Finish API spec'?"),
+    _p(16, "slack_message", channel="#tiffinly", text="Launch Review summary: 3 conflicts found..."),
+    _p(17, "notion_task", title="Fix OTP login bug", owner=None, due_date=None),
+    _p(18, "notion_task", title="Write onboarding docs", owner="Rahul", due_date="2026-11-12"),
 ]
 
 
@@ -39,21 +41,21 @@ def has(result, kind, pid, **fields):
 
 
 CASES = [
-    ("Approve all the tasks", lambda r: ids(r, "approve") == [1, 2, 6]),
+    ("Approve all the tasks", lambda r: ids(r, "approve") == [12, 13, 17, 18]),
     (
         "Approve everything except the summary",
-        lambda r: ids(r, "approve") == [1, 2, 3, 4, 6] and not ids(r, "reject"),
+        lambda r: ids(r, "approve") == [12, 13, 14, 15, 17, 18] and not ids(r, "reject"),
     ),
     (
         "Give the OTP bug to Pragti, due November 10th, and approve it",
-        lambda r: ids(r, "approve") == [6]
-        and has(r, "reassign", 6, to="Pragti")
-        and has(r, "set_deadline", 6, date="2026-11-10"),
+        lambda r: ids(r, "approve") == [17]
+        and has(r, "reassign", 17, to="Pragti")
+        and has(r, "set_deadline", 17, date="2026-11-10"),
     ),
-    ("Approve won and two, reject five", lambda r: ids(r, "approve") == [1, 2] and ids(r, "reject") == [5]),
+    ("Approve won and two, reject five", lambda r: ids(r, "approve") == [12, 13] and ids(r, "reject") == [16]),
     (
         "Set the landing page deadline to next Friday and approve it",
-        lambda r: ids(r, "approve") == [2] and has(r, "set_deadline", 2, date="2026-11-06"),
+        lambda r: ids(r, "approve") == [13] and has(r, "set_deadline", 13, date="2026-11-06"),
     ),
     (
         "Assign the landing page to Rohit",

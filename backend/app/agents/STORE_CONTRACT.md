@@ -89,7 +89,9 @@ Input keys: `kind, payload, issue_id (optional), task_id (optional)`. Store defa
 `status='pending'`. Returns inserted rows with an **integer `id`**, `meeting_id`, `run_id`.
 Table `proposals(id serial, run_id, meeting_id, kind, payload jsonb, status, issue_id, task_id)`.
 - `kind`: `notion_task | slack_message`
-- `status`: `pending | approved | rejected | sent | failed` (`executed` is replaced by `sent`/`failed`)
+- `status`: `pending | approved | rejected | sent | failed | superseded` (`executed` is replaced by
+  `sent`/`failed`; `superseded` = a later meeting recommitted/completed the task, so this pending
+  proposal is stale. **Add `'superseded'` to the `proposals.status` check constraint in `db/schema.sql`.**)
 - payloads: notion_task `{title, owner, owner_id, deadline, deadline_raw, source_quote}`;
   slack_message `{channel, text}`. Review edits may add/overwrite payload keys `owner, owner_id,
   due_date (yyyy-mm-dd; notion_task also gets `deadline`), text (notion_task also gets `title`)`.
@@ -102,3 +104,19 @@ by `id`. Both `None` returns every proposal. Rows include `result` once executed
 ### `update_proposal(proposal_id: int, fields: dict) -> None`
 Partial update of `proposals`. Keys sent: `status`, `payload` (the whole merged jsonb), `result`.
 Unknown id → raise (the in-memory store raises `KeyError`).
+
+## For Pragti
+
+Everything the agents need is wired in `app/agents/runtime.py`; routes never build their own graph.
+
+- **Store:** implement `SupabaseStore` in `app/db/store.py` (this contract) and set
+  `USE_SUPABASE_STORE=true`. `runtime.get_store()` imports and returns it.
+- **Checkpointer:** replace the `InMemorySaver` in `runtime.get_checkpointer()` with the Postgres
+  checkpointer (see the TODO there), so paused runs survive restarts.
+- **Executor:** return your Notion/Slack/email executor from `runtime.get_executor()` (TODO there).
+  Signature: `executor(proposal) -> {"ok": bool, "external_id": str | None, "error": str | None}`.
+- **`/meetings/{id}/process`:** use `runtime.get_ingest_graph()` and `start_run()` /
+  `start_run_stream()` from `app.agents.graphs.ingest`. Do not call `build_ingest_graph` yourself,
+  otherwise the run is checkpointed somewhere `/proposals/confirm` can't resume it from.
+- **`/runs/{id}/stream`:** forward the items from `start_run_stream` / `resume_run_stream` over SSE.
+- `/dev/seed-demo` only works in in-memory mode (it returns 400 when `USE_SUPABASE_STORE=true`).

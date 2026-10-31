@@ -11,7 +11,7 @@ from datetime import date
 from app.agents.store import Store, match_person
 
 # A proposal that has already left the building can't be reviewed again.
-FROZEN_STATUSES = {"sent", "failed"}
+FROZEN_STATUSES = {"sent", "failed", "superseded"}
 
 
 def _canonical(name: str, people: list[dict]) -> tuple[str, dict | None]:
@@ -101,8 +101,11 @@ def _join(items: list[str]) -> str:
     return items[0] if len(items) == 1 else ", ".join(items[:-1]) + f" and {items[-1]}"
 
 
-def preview_actions(proposals: list[dict], actions: list[dict]) -> str:
-    """e.g. "Approve #1 (reassigned to Shrey, due Nov 5) and #3. Reject #2. #4 stays pending."."""
+def preview_actions(proposals: list[dict], actions: list[dict], numbering: dict[int, int] | None = None) -> str:
+    """e.g. "Approve #1 (reassigned to Shrey, due Nov 5) and #3. Reject #2. #4 stays pending.".
+
+    `numbering` maps proposal id -> the number shown to the user (display_no); default is the id."""
+    numbering = numbering or {}
     known = {p["id"] for p in proposals}
     status: dict[int, str] = {}
     notes: dict[int, dict] = {}
@@ -127,7 +130,8 @@ def preview_actions(proposals: list[dict], actions: list[dict]) -> str:
         parts = [f"reassigned to {n['to']}"] if "to" in n else []
         parts += [f"due {n['due']}"] if "due" in n else []
         parts += ["text edited"] if n.get("edited") else []
-        return f"#{pid} ({', '.join(parts)})" if parts else f"#{pid}"
+        shown = numbering.get(pid, pid)
+        return f"#{shown} ({', '.join(parts)})" if parts else f"#{shown}"
 
     sentences = []
     for verb, key in (("Approve", "approve"), ("Reject", "reject")):
