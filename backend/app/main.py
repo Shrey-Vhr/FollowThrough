@@ -12,7 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.agents import runtime
 from app.agents import api_dev, api_insights, api_proposals
-from app.api import dev_supabase, meetings, runs, wispr
+from app.api import dev_supabase, issues, meetings, runs, wispr
 from app.config import DATABASE_URL, FRONTEND_ORIGIN
 
 logger = logging.getLogger(__name__)
@@ -56,7 +56,7 @@ def health():
     return {"status": "ok"}
 
 
-for r in (meetings.router, wispr.router, runs.router, dev_supabase.router, api_proposals.router, api_dev.router, api_insights.router):
+for r in (meetings.router, wispr.router, runs.router, issues.router, dev_supabase.router, api_proposals.router, api_dev.router, api_insights.router):
     app.include_router(r)
 
 

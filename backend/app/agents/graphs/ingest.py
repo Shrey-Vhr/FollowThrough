@@ -595,7 +595,8 @@ class IngestNodes:
             result = self.executor(proposal)
             if inspect.isawaitable(result):
                 result = await result
-            return {"ok": bool(result["ok"]), "external_id": result.get("external_id"), "error": result.get("error")}
+            return {"ok": bool(result["ok"]), "external_id": result.get("external_id"),
+                    "url": result.get("url"), "error": result.get("error")}
         except Exception as exc:  # a failing integration must not take the run down
             return {"ok": False, "external_id": None, "error": f"{type(exc).__name__}: {exc}"}
 

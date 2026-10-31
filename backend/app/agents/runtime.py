@@ -59,8 +59,9 @@ def set_checkpointer(checkpointer) -> None:
 
 
 def get_executor() -> Executor:
-    # TODO(Pragti): return the real Notion/Slack/email executor here.
-    return dry_run_executor
+    from app.integrations.executor import real_executor, use_real_integrations
+
+    return real_executor if use_real_integrations() else dry_run_executor
 
 
 @lru_cache(maxsize=1)
