@@ -81,6 +81,20 @@ create table reminders (
   remind_at timestamptz, sent boolean default false
 );
 
+alter table segments
+  add column if not exists idx int;
+
+alter table decisions
+  add column if not exists made_by_id uuid references people;
+
+alter table issues
+  add column if not exists resolved_by_decision_id uuid references decisions,
+  add column if not exists created_at timestamptz default now();
+
+alter table proposals
+  add column if not exists issue_id uuid references issues,
+  add column if not exists task_id uuid references tasks;
+
 create or replace function match_decisions(q vector(1536), k int default 5, exclude_meeting uuid default null)
 returns table (id uuid, statement text, topic text, meeting_id uuid, similarity float)
 language sql stable as $$
@@ -99,4 +113,16 @@ language sql stable as $$
   where status <> 'completed' and embedding is not null
     and (exclude_meeting is null or meeting_id <> exclude_meeting)
   order by embedding <=> q limit k;
+$$;
+
+create or replace function search_decisions(q vector(1536), k int default 5, exclude_meeting uuid default null)
+returns table (id uuid, statement text, topic text, meeting_id uuid, similarity float)
+language sql stable as $$
+  select * from match_decisions(q, k, exclude_meeting);
+$$;
+
+create or replace function search_tasks(q vector(1536), k int default 5, exclude_meeting uuid default null)
+returns table (id uuid, title text, owner_id uuid, deadline date, similarity float)
+language sql stable as $$
+  select * from match_open_tasks(q, k, exclude_meeting);
 $$;

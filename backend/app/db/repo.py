@@ -30,12 +30,13 @@ def insert_segments(meeting_id: str, segments: list[dict]) -> int:
     rows = [
         {
             "meeting_id": meeting_id,
+            "idx": idx,
             "speaker": s["speaker"],
             "person_id": resolve_person_id(s["speaker"], people),
             "ts_seconds": s.get("ts_seconds"),
             "text": s["text"],
         }
-        for s in segments
+        for idx, s in enumerate(segments)
     ]
     if rows:
         get_db().table("segments").insert(rows).execute()

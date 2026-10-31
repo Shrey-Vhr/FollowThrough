@@ -19,8 +19,13 @@ def health():
     return {"status": "ok"}
 
 
+<<<<<<< HEAD
 # app.include_router(meetings.router)
 # app.include_router(wispr.router)
 app.include_router(api_proposals.router)
 app.include_router(api_dev.router)
 app.include_router(api_insights.router)
+=======
+app.include_router(meetings.router)
+app.include_router(wispr.router)
+>>>>>>> d007318 (feat(api): add transcript ingestion via paste, upload and Wispr MCP)

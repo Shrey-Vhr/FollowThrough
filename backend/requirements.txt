@@ -12,5 +12,6 @@ dateparser
 numpy
 supabase
 python-multipart
-mcp
+mcp==1.30.0
 httpx
+sse-starlette
