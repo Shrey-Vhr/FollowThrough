@@ -10,6 +10,7 @@ from app.services import clock
 logger = logging.getLogger(__name__)
 IST = timezone(timedelta(hours=5, minutes=30))
 WINDOW = timedelta(hours=24)
+PAUSED = False  # set while /dev/reset-supabase rebuilds the seeded data
 
 
 def _due_at(deadline: str) -> datetime:
@@ -41,6 +42,8 @@ def _record(task_id: str, now: datetime) -> None:
 
 
 async def send_due_reminders() -> list[dict]:
+    if PAUSED:
+        return []
     now = clock.now()
     due = await asyncio.to_thread(_find_due, now)
     executor, results = runtime.get_executor(), []
