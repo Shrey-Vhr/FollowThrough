@@ -2,19 +2,22 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useProposals } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 import { Logo } from "./logo";
 import { NAV, isActive } from "./nav";
 
 export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
+  const pending = useProposals("pending");
   return (
     <div className="flex h-full flex-col">
       <div className="flex h-14 items-center px-5">
         <Logo />
       </div>
       <nav className="flex-1 space-y-0.5 px-3 pt-2" aria-label="Main">
-        {NAV.map(({ href, label, icon: Icon, badge }) => {
+        {NAV.map(({ href, label, icon: Icon, badge: staticBadge }) => {
+          const badge = href === "/review" ? pending.data?.length : staticBadge;
           const active = isActive(href, pathname);
           return (
             <Link
@@ -41,8 +44,15 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
                 strokeWidth={1.75}
               />
               <span className="flex-1 truncate">{label}</span>
-              {badge !== undefined && (
-                <span className="rounded-md border border-border bg-surface-2 px-1.5 font-mono text-[11px] leading-5 text-muted-foreground">
+              {badge !== undefined && (href !== "/review" || badge > 0) && (
+                <span
+                  className={cn(
+                    "rounded-md border px-1.5 font-mono text-[11px] leading-5",
+                    href === "/review"
+                      ? "border-primary/30 bg-primary/15 text-[#c4bdff]"
+                      : "border-border bg-surface-2 text-muted-foreground",
+                  )}
+                >
                   {badge}
                 </span>
               )}

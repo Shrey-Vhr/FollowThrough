@@ -7,7 +7,10 @@ import type {
   IssueType,
   MeetingDetail,
   MeetingSummary,
+  ConfirmResult,
   Proposal,
+  ReviewAction,
+  VoiceCommandResult,
   Task,
   WisprMeeting,
 } from "./types";
@@ -104,6 +107,12 @@ export const followthrough = {
     api<Issue>(`/issues/${id}`, { method: "PATCH", json: { action } }),
   tasks: (p: { due_within_days?: number } = {}) => api<Task[]>(`/tasks${qs(p)}`),
   proposals: (p: { status?: string } = {}) => api<Proposal[]>(`/proposals${qs(p)}`),
+  patchProposal: (id: number, body: { payload?: Record<string, unknown>; status?: "pending" | "rejected" }) =>
+    api<Proposal>(`/proposals/${id}`, { method: "PATCH", json: body }),
+  voiceCommand: (text: string) =>
+    api<VoiceCommandResult>("/proposals/voice-command", { method: "POST", json: { text } }),
+  confirmProposals: (actions: ReviewAction[]) =>
+    api<ConfirmResult>("/proposals/confirm", { method: "POST", json: { actions } }),
   wisprMeetings: () => api<WisprMeeting[]>("/wispr/meetings"),
   importWispr: (body: ImportWisprBody) =>
     api<ImportWisprResult>("/meetings/import/wispr", { method: "POST", json: body }),

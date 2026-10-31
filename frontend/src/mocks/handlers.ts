@@ -6,8 +6,12 @@ import type {
   Issue,
   IssueAction,
   MeetingDetail,
+  Proposal,
+  ReviewAction,
   Task,
 } from "@/lib/types";
+import { parseVoiceCommand } from "./voice";
+import { describePreview } from "@/lib/review";
 import { seedMeetings, seedProposals, seedWispr, vendorCallAnalysis, vendorCallSegments } from "./data";
 
 /** In-memory "database". Survives client-side navigation, resets on a full reload. */
@@ -98,6 +102,83 @@ function patchIssue(id: number, action: IssueAction): Issue {
   return clone(issue);
 }
 
+const SEND_LINKS: Record<Proposal["kind"], (p: Proposal) => string> = {
+  notion_task: (p) => `https://www.notion.so/tiffinly/${p.id}-${String(p.payload.title ?? "task").toLowerCase().replace(/\W+/g, "-")}`,
+  slack_message: (p) => `https://tiffinly.slack.com/archives/C0TIFFIN/p17300000${String(p.id).padStart(2, "0")}`,
+  email: (p) => `https://mail.google.com/mail/u/0/#sent/${p.id}`,
+};
+
+/** Pending proposals in id order, each with the number the user sees (like the real API). */
+function proposalsWithNumbers(): Proposal[] {
+  const pending = db.proposals.filter((p) => p.status === "pending").sort((a, b) => a.id - b.id);
+  const numbers = new Map(pending.map((p, i) => [p.id, i + 1]));
+  return db.proposals.map((p) => ({ ...p, display_no: numbers.get(p.id) ?? null }));
+}
+
+function findProposal(id: number): Proposal {
+  const p = db.proposals.find((x) => x.id === id);
+  if (!p) throw new MockHttpError(`No proposal ${id}.`, 404);
+  return p;
+}
+
+function patchProposal(id: number, body: { payload?: Record<string, unknown>; status?: "pending" | "rejected" }) {
+  const p = findProposal(id);
+  if (p.status !== "pending" && p.status !== "rejected") {
+    throw new MockHttpError(`Proposal ${id} is already ${p.status} and can't be edited.`, 409);
+  }
+  if (body.payload) {
+    p.payload = { ...p.payload, ...body.payload };
+    if (p.kind === "notion_task" && "due_date" in body.payload) p.payload.deadline = body.payload.due_date;
+  }
+  if (body.status) p.status = body.status;
+  p.summary = summarize(p);
+  return proposalsWithNumbers().find((x) => x.id === id)!;
+}
+
+function summarize(p: Proposal): string {
+  const pl = p.payload as Record<string, string | null>;
+  if (p.kind === "notion_task") return `Create task: ${pl.title} → ${pl.owner ?? "no owner"}, due ${pl.due_date ?? "no date"}`;
+  if (p.kind === "email") return `Email to ${pl.to}: ${pl.subject}`;
+  return `Slack to ${pl.channel ?? pl.user}: ${(pl.text ?? "").slice(0, 70)}`;
+}
+
+function applyAction(p: Proposal, a: ReviewAction) {
+  if (a.action === "approve") p.status = "approved";
+  else if (a.action === "reject") p.status = "rejected";
+  else if (a.action === "reassign" && a.to) p.payload = { ...p.payload, owner: a.to };
+  else if (a.action === "set_deadline" && a.date) p.payload = { ...p.payload, due_date: a.date, deadline: a.date };
+  else if (a.action === "edit_text" && a.text != null) {
+    p.payload = { ...p.payload, text: a.text, ...(p.kind === "notion_task" ? { title: a.text } : {}) };
+  }
+  p.summary = summarize(p);
+}
+
+async function confirmProposals(actions: ReviewAction[]) {
+  if (!actions.length) throw new MockHttpError("No actions to confirm.", 400);
+  const ids = [...new Set(actions.flatMap((a) => a.proposal_ids))].sort((a, b) => a - b);
+  ids.forEach(findProposal);
+  // Only pending proposals can still change, which makes confirming twice harmless.
+  const before = proposalsWithNumbers();
+  const pending = before.filter((p) => ids.includes(p.id) && p.status === "pending");
+  const preview = describePreview(pending, actions);
+  for (const a of actions) {
+    for (const id of a.proposal_ids) {
+      const p = db.proposals.find((x) => x.id === id);
+      if (p && p.status === "pending") applyAction(p, a);
+    }
+  }
+  await wait(1200); // the "executor" talking to Notion / Slack
+  for (const id of ids) {
+    const p = db.proposals.find((x) => x.id === id)!;
+    if (p.status === "approved") {
+      p.status = "sent";
+      p.result = { ok: true, external_id: `mock-${p.id}`, url: SEND_LINKS[p.kind](p), error: null };
+    }
+  }
+  const updated = proposalsWithNumbers().filter((p) => pending.some((x) => x.id === p.id));
+  return { proposals: clone(updated), preview };
+}
+
 type Init = { method?: string; json?: unknown };
 
 /** Same paths, methods and shapes as the real API. */
@@ -158,7 +239,25 @@ export async function mockApi<T>(path: string, init: Init = {}): Promise<T> {
 
   if (method === "GET" && p === "/proposals") {
     const status = q.get("status");
-    return clone(db.proposals.filter((x) => !status || x.status === status)) as T;
+    return clone(proposalsWithNumbers().filter((x) => !status || x.status === status)) as T;
+  }
+
+  m = /^\/proposals\/(\d+)$/.exec(p);
+  if (method === "PATCH" && m) {
+    return clone(patchProposal(Number(m[1]), init.json as Parameters<typeof patchProposal>[1])) as T;
+  }
+
+  if (method === "POST" && p === "/proposals/voice-command") {
+    const text = String((init.json as { text?: string })?.text ?? "").trim();
+    const pending = proposalsWithNumbers().filter((x) => x.status === "pending");
+    if (!text) throw new MockHttpError("Say or type a command first.", 400);
+    if (!pending.length) throw new MockHttpError("There are no pending proposals to act on.", 400);
+    await wait(400);
+    return parseVoiceCommand(text, pending) as T;
+  }
+
+  if (method === "POST" && p === "/proposals/confirm") {
+    return (await confirmProposals((init.json as { actions: ReviewAction[] }).actions ?? [])) as T;
   }
 
   if (method === "GET" && p === "/wispr/meetings") return clone(db.wispr) as T;

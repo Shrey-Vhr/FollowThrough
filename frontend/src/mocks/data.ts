@@ -242,11 +242,14 @@ export const seedWispr = (): WisprMeeting[] => [
   { wispr_meeting_id: "wm_1b66", title: "Tiffinly Launch Kickoff", start: "2026-10-17T15:00:00", has_transcript: true, summary_excerpt: "Fixed the Nov 15 launch, Stripe payments and ₹1,499 monthly pricing.", already_imported: true },
 ];
 
+const base = { run_id: "run_demo", meeting_id: 3, status: "pending", result: null } as const;
+
+/** Six pending Tiffinly proposals from the Launch Review (display_no is assigned by the mock API). */
 export const seedProposals = (): Proposal[] => [
-  { id: 1, kind: "notion_task", status: "pending", payload: { title: "Integrate Razorpay", owner: "Pragti", deadline: "2026-11-07" } },
-  { id: 2, kind: "notion_task", status: "pending", payload: { title: "Update pricing to ₹999 in the app and site", owner: "Shrey Vohra", deadline: "2026-11-04" } },
-  { id: 3, kind: "slack_message", status: "pending", payload: { channel: "#tiffinly", text: "@Shrey, can you confirm a date for 'Make the landing page live'?" } },
-  { id: 4, kind: "slack_message", status: "pending", payload: { channel: "#tiffinly", text: "@Pragti, can you confirm a date for 'Write the API spec'? It has slipped twice." } },
-  { id: 5, kind: "slack_message", status: "pending", payload: { channel: "#tiffinly", text: "Nobody owns 'Fix the OTP login bug' yet. Who can take it?" } },
-  { id: 6, kind: "slack_message", status: "pending", payload: { channel: "#tiffinly", text: "Summary of 'Tiffinly Launch Review' (2026-10-31): launch → Nov 30, Stripe → Razorpay, monthly plan ₹1,499 → ₹999." } },
+  { ...base, id: 1, kind: "notion_task", summary: "Create task: Integrate Razorpay → Pragti, due 2026-11-20", payload: { title: "Integrate Razorpay", owner: "Pragti", due_date: "2026-11-20", source_quote: "We're moving to Razorpay. Pragti, can you take the integration?" } },
+  { ...base, id: 2, kind: "notion_task", summary: "Create task: Make landing page live → Shrey Vohra, due no date", payload: { title: "Make landing page live", owner: "Shrey Vohra", due_date: null, source_quote: "I'll get the landing page live once pricing is final." } },
+  { ...base, id: 3, kind: "slack_message", summary: "Slack to #tiffinly: Nobody owns 'Fix OTP login bug' yet — who can take it?", payload: { channel: "#tiffinly", text: "Nobody owns 'Fix OTP login bug' yet — who can take it?" } },
+  { ...base, id: 4, kind: "slack_message", summary: "Slack to @Pragti: Can you confirm a date for 'Finish API spec'?", payload: { user: "@Pragti", text: "Can you confirm a date for 'Finish API spec'?" } },
+  { ...base, id: 5, kind: "slack_message", summary: "Slack to #tiffinly: Launch Review summary: 3 conflicts found…", payload: { channel: "#tiffinly", text: "Launch Review summary: 3 conflicts found — launch date (Nov 15 → Nov 30), payments (Stripe → Razorpay) and pricing (₹1,499 → ₹999)." } },
+  { ...base, id: 6, kind: "notion_task", summary: "Create task: Fix OTP login bug → no owner, due no date", payload: { title: "Fix OTP login bug", owner: null, due_date: null, source_quote: "The OTP login bug is blocking signups and nobody owns it." } },
 ];

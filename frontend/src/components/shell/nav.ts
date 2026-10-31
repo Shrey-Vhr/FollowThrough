@@ -44,8 +44,7 @@ export const NAV: NavItem[] = [
     label: "Review Queue",
     icon: ShieldCheck,
     title: "Review Queue",
-    subtitle: "Nothing is sent until you approve it.",
-    badge: 0, // placeholder until proposals are wired up
+    subtitle: "Nothing leaves FollowThrough until you approve it.",
   },
   {
     href: "/briefs",

@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { followthrough as ft } from "./api";
 import { keys } from "./queries";
-import type { Issue, IssueAction, MeetingDetail } from "./types";
+import type { Issue, IssueAction, MeetingDetail, ReviewAction } from "./types";
 
 const TOASTS: Record<IssueAction, { title: string; description: string }> = {
   supersede: { title: "Marked as superseded", description: "The newer decision now replaces the old one." },
@@ -41,5 +41,37 @@ export function useIssueAction() {
       void qc.invalidateQueries({ queryKey: ["meeting"] });
       void qc.invalidateQueries({ queryKey: ["issues"] });
     },
+  });
+}
+
+/** Edit a pending proposal's payload (owner, due date, text). */
+export function usePatchProposal() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: number; payload: Record<string, unknown> }) =>
+      ft.patchProposal(id, { payload }),
+    onSuccess: () => {
+      toast.success("Saved");
+      void qc.invalidateQueries({ queryKey: ["proposals"] });
+    },
+    onError: (err) => toast.error("Couldn't save the change", { description: err.message }),
+  });
+}
+
+/** Turn a dictated command into review actions. Nothing is executed. */
+export function useVoiceCommand() {
+  return useMutation({
+    mutationFn: (text: string) => ft.voiceCommand(text),
+    onError: (err) => toast.error("Couldn't understand that", { description: err.message }),
+  });
+}
+
+/** Apply the actions: the backend resumes the run and sends what was approved. */
+export function useConfirmProposals() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (actions: ReviewAction[]) => ft.confirmProposals(actions),
+    onSettled: () => void qc.invalidateQueries({ queryKey: ["proposals"] }),
+    onError: (err) => toast.error("Couldn't send", { description: err.message }),
   });
 }

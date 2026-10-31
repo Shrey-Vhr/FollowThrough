@@ -104,13 +104,51 @@ export interface MeetingDetail extends MeetingSummary {
 }
 
 export type ProposalKind = "notion_task" | "slack_message" | "email";
-export type ProposalStatus = "pending" | "approved" | "rejected" | "sent" | "failed";
+export type ProposalStatus = "pending" | "approved" | "rejected" | "sent" | "failed" | "superseded";
+
+/** Outcome of sending a proposal. The mock adds a link; the real executor returns an external id. */
+export interface ProposalResult {
+  ok: boolean;
+  external_id?: string | null;
+  url?: string | null;
+  error?: string | null;
+}
 
 export interface Proposal {
+  /** Real id: what the API takes and returns in actions. */
   id: number;
+  run_id?: string | null;
+  meeting_id?: number | null;
   kind: ProposalKind;
+  /** notion_task {title, owner, due_date}; slack_message {channel|user, text}; email {to, subject, body} */
   payload: Record<string, unknown>;
   status: ProposalStatus;
+  summary: string;
+  result?: ProposalResult | null;
+  /** 1..N among pending proposals, in id order: the number the user sees and speaks. Null when not pending. */
+  display_no?: number | null;
+}
+
+export type ReviewActionKind = "approve" | "reject" | "reassign" | "set_deadline" | "edit_text";
+
+/** One review action. Same shape for button clicks and voice commands. */
+export interface ReviewAction {
+  action: ReviewActionKind;
+  proposal_ids: number[];
+  to?: string | null;
+  date?: string | null;
+  text?: string | null;
+}
+
+export interface VoiceCommandResult {
+  actions: ReviewAction[];
+  preview: string;
+  warnings: string[];
+}
+
+export interface ConfirmResult {
+  proposals: Proposal[];
+  preview: string;
 }
 
 export interface WisprMeeting {
