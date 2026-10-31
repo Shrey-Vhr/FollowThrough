@@ -1,13 +1,11 @@
-import { BookMarked } from "lucide-react";
-import { EmptyState } from "@/components/empty-state";
+import { Suspense } from "react";
+import { LedgerView } from "@/components/ledger/ledger-view";
 
 export default function Page() {
+  // LedgerView reads ?topic= from the URL, which needs a Suspense boundary during prerender.
   return (
-    <EmptyState
-      icon={BookMarked}
-      title="The ledger is empty"
-      description="Decisions from your meetings will be tracked here, with conflicts flagged automatically."
-      action="How the ledger works"
-    />
+    <Suspense>
+      <LedgerView />
+    </Suspense>
   );
 }

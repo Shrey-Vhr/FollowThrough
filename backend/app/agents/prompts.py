@@ -171,3 +171,51 @@ def build_voice_messages(
         f"Command: {command}"
     )
     return [("system", VOICE_SYSTEM), ("human", user)]
+
+
+AGENDA_SYSTEM = """You split a meeting agenda into topics. The agenda is usually dictated by voice, so it may be rambling, have filler words, or run several topics together ("pricing and launch date, also check the OTP bug").
+
+Return 1 to 5 short topic phrases (2-4 words each), in the order mentioned. Use plain nouns a teammate would search for ("launch date", "pricing", "OTP login bug"). Do not add topics that are not in the agenda. Merge near-duplicates."""
+
+
+def build_agenda_messages(agenda: str) -> list[tuple[str, str]]:
+    return [("system", AGENDA_SYSTEM), ("human", f"Agenda:\n{agenda}")]
+
+
+BRIEF_SYSTEM = """You write a pre-meeting brief for the person running a meeting, from facts retrieved from the team's memory of past meetings.
+
+RULES
+- Use ONLY the facts provided. Never invent decisions, dates, owners or tasks. If a topic has no facts, say so: current_decision null, empty lists, and one suggested question that asks the team to decide it.
+- Retrieval is fuzzy: ignore any fact that is not clearly about the topic of its section (a task or issue about something else belongs to a different topic).
+- One section per agenda topic, in the given order. Copy dates, meeting titles, owners and counts exactly from the facts.
+- history: every past decision on the topic, OLDEST to NEWEST, statement as written. A decision whose status is "superseded" must end with " (superseded)".
+- current_decision: the newest decision whose status is "current". null if none.
+- open_conflicts: unresolved conflicts or disagreements about the topic, one short sentence each, naming both sides and dates.
+- open_tasks: only tasks whose status is not "completed". Keep rollover_count as given.
+- unresolved: tasks without an owner, vague deadlines, and open questions, one short sentence each.
+- suggested_questions: at most 3 per topic, concrete and pointed, naming people and facts. Good: "Can Pragti commit to a fixed date for the API spec? It has slipped twice." Bad: "What are the next steps?". Always give at least one.
+- headline: one sentence on the single most important thing going into the meeting (the biggest conflict or slipping commitment)."""
+
+
+def build_brief_messages(agenda: str, meeting_at: str | None, facts: str) -> list[tuple[str, str]]:
+    user = (
+        f"Agenda (as dictated): {agenda}\n"
+        f"Meeting at: {meeting_at or 'not given'}\n\n"
+        f"Facts per topic (JSON):\n{facts}"
+    )
+    return [("system", BRIEF_SYSTEM), ("human", user)]
+
+
+DIGEST_SYSTEM = """You write a short, friendly weekly follow-up email to one teammate about their commitments, from the facts provided.
+
+RULES
+- Plain text. Under 180 words. Greeting by first name, then "- " bullet points, then a one-line sign-off from "FollowThrough". No fluff, no filler praise.
+- Use ONLY the facts provided. Never invent tasks, dates or decisions.
+- Order: overdue tasks first, then tasks that have slipped before (mention how many times), then other open tasks with deadlines, then recent decisions that affect them, then open issues on their tasks.
+- Be specific: task title, deadline. State overdue items plainly and kindly, and ask for a new date when a task is overdue or has slipped.
+- Skip a section if there is nothing in it. If everything is on track, say so in one line.
+- subject: short and specific, e.g. "Your week: 2 open tasks, 1 overdue"."""
+
+
+def build_digest_messages(person: str, today: str, facts: str) -> list[tuple[str, str]]:
+    return [("system", DIGEST_SYSTEM), ("human", f"Recipient: {person}\nToday: {today}\n\nFacts (JSON):\n{facts}")]

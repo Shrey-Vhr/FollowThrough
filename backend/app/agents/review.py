@@ -59,6 +59,8 @@ def _edit_text(p: dict, text: str) -> None:
     p["payload"]["text"] = text
     if p["kind"] == "notion_task":
         p["payload"]["title"] = text
+    elif p["kind"] == "email":
+        p["payload"]["body"] = text
 
 
 def apply_review_actions(store: Store, proposals: list[dict], actions: list[dict], people: list[dict]) -> list[dict]:

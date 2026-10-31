@@ -57,6 +57,8 @@ export interface DecisionView {
 }
 
 export interface ConflictDetails {
+  /** extension: the ledger topic this conflict belongs to, so rows can deep-link to /ledger */
+  topic?: string;
   new: DecisionView;
   past: DecisionView;
   explanation: string;
@@ -175,4 +177,133 @@ export interface RunEvent {
   status: "running" | "done" | "error" | (string & {});
   message: string;
   data?: Record<string, unknown>;
+}
+
+// ---- Briefs ---------------------------------------------------------------
+
+export interface BriefHistoryItem {
+  date: string;
+  meeting_title: string;
+  statement: string;
+}
+
+export interface BriefTask {
+  title: string;
+  owner: string | null;
+  deadline: string | null;
+  status: string;
+  rollover_count: number;
+}
+
+export interface BriefTopic {
+  topic: string;
+  current_decision: string | null;
+  history: BriefHistoryItem[];
+  open_conflicts: string[];
+  open_tasks: BriefTask[];
+  unresolved: string[];
+  suggested_questions: string[];
+}
+
+export interface Brief {
+  id: number | string;
+  headline: string;
+  topics: BriefTopic[];
+  /** extensions: present on saved briefs when the backend stores them */
+  agenda?: string | null;
+  meeting_at?: string | null;
+  created_at?: string | null;
+}
+
+export interface BriefBody {
+  agenda: string;
+  meeting_at?: string;
+}
+
+export interface DigestResult {
+  proposals_created: number;
+  proposal_ids: number[];
+}
+
+// ---- Commitments ----------------------------------------------------------
+
+export type TaskUpdateType =
+  | "committed"
+  | "recommitted"
+  | "in_progress"
+  | "blocked"
+  | "completed"
+  | "not_mentioned"
+  | (string & {});
+
+export interface CommitmentHistoryItem {
+  meeting_title: string;
+  held_at: string;
+  update_type: TaskUpdateType;
+  quote: string | null;
+  /** extensions: what the deadline was at that point, when the backend records it */
+  deadline?: string | null;
+  deadline_raw?: string | null;
+}
+
+export interface CommitmentTask {
+  id: number | string;
+  title: string;
+  status: TaskStatus;
+  deadline: string | null;
+  deadline_raw: string | null;
+  rollover_count: number;
+  overdue?: boolean;
+  history: CommitmentHistoryItem[];
+}
+
+export interface Commitment {
+  person_id: number | string;
+  name: string;
+  committed: number;
+  completed: number;
+  open: number;
+  overdue: number;
+  total_rollovers: number;
+  /** 0..1 */
+  follow_through_rate: number;
+  tasks: CommitmentTask[];
+}
+
+// ---- Decision ledger ------------------------------------------------------
+
+export interface LedgerDecision {
+  id: number | string;
+  statement: string;
+  held_at: string;
+  meeting_title: string;
+  /** "current" | "superseded" | ... */
+  status?: string;
+  topic?: string;
+  made_by?: string | null;
+  source_quote?: string | null;
+}
+
+export interface LedgerTopic {
+  topic: string;
+  current: LedgerDecision;
+  history: LedgerDecision[];
+  has_conflict: boolean;
+}
+
+export interface LedgerConflict {
+  decision_id: number | string;
+  related_decision_id: number | string;
+  title?: string;
+  /** extensions: what changed, e.g. "Nov 15" and "Nov 30" */
+  old_value?: string;
+  new_value?: string;
+  explanation?: string;
+}
+
+export interface LedgerLineage {
+  decision_id: number | string;
+  topic: string;
+  chain: LedgerDecision[];
+  conflicts: LedgerConflict[];
 }

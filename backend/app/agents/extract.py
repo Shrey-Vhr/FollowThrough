@@ -3,9 +3,9 @@ from app.agents.prompts import build_extraction_messages
 from app.agents.schemas import Extraction
 
 DEFAULT_PEOPLE = [
-    {"name": "Shrey Vohra", "aliases": ["Shrey", "Shrey Vohra"]},
-    {"name": "Pragti", "aliases": ["Pragti", "Pragti Aggarwal", "Speaker 2"]},
-    {"name": "Rahul", "aliases": ["Rahul"]},
+    {"name": "Shrey Vohra", "aliases": ["Shrey", "Shrey Vohra"], "email": "shrey@example.com"},
+    {"name": "Pragti", "aliases": ["Pragti", "Pragti Aggarwal", "Speaker 2"], "email": "pragti@example.com"},
+    {"name": "Rahul", "aliases": ["Rahul"], "email": "rahul@example.com"},
 ]
 
 

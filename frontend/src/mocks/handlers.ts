@@ -12,6 +12,7 @@ import type {
 } from "@/lib/types";
 import { parseVoiceCommand } from "./voice";
 import { describePreview } from "@/lib/review";
+import { buildMockBrief, mockCommitments, mockDigestProposals, mockLedger, mockLineage, seedBriefs } from "./story";
 import { seedMeetings, seedProposals, seedWispr, vendorCallAnalysis, vendorCallSegments } from "./data";
 
 /** In-memory "database". Survives client-side navigation, resets on a full reload. */
@@ -20,6 +21,7 @@ const db = {
   wispr: seedWispr(),
   proposals: seedProposals(),
   runs: new Map<string, number>(),
+  briefs: seedBriefs(),
   nextMeetingId: 4,
 };
 
@@ -261,6 +263,50 @@ export async function mockApi<T>(path: string, init: Init = {}): Promise<T> {
   }
 
   if (method === "GET" && p === "/wispr/meetings") return clone(db.wispr) as T;
+
+  if (method === "POST" && p === "/briefs") {
+    const body = init.json as { agenda?: string; meeting_at?: string };
+    if (!body?.agenda?.trim()) throw new MockHttpError("The agenda is empty.", 422);
+    await wait(3200); // splitting, searching, writing
+    const brief = buildMockBrief(body.agenda.trim(), Math.max(0, ...db.briefs.map((b) => Number(b.id))) + 1, body.meeting_at);
+    db.briefs.unshift(brief);
+    return clone(brief) as T;
+  }
+
+  if (method === "GET" && p === "/briefs") {
+    return clone([...db.briefs].sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))) as T;
+  }
+
+  m = /^\/briefs\/(\w+)$/.exec(p);
+  if (method === "GET" && m) {
+    const brief = db.briefs.find((b) => String(b.id) === m![1]);
+    if (!brief) throw new MockHttpError(`No brief ${m[1]}.`, 404);
+    return clone(brief) as T;
+  }
+
+  if (method === "POST" && p === "/digests/run") {
+    await wait(900);
+    // Re-running replaces the previous unsent digest drafts rather than stacking duplicates.
+    db.proposals = db.proposals.filter((x) => !(x.payload.digest && x.status === "pending"));
+    let next = Math.max(0, ...db.proposals.map((x) => x.id)) + 1;
+    const created = mockDigestProposals().map((x) => ({ ...x, id: next++ }));
+    db.proposals.push(...created);
+    return { proposals_created: created.length, proposal_ids: created.map((x) => x.id) } as T;
+  }
+
+  if (method === "GET" && p === "/commitments") return mockCommitments() as T;
+
+  if (method === "GET" && p === "/ledger/decisions") {
+    const topic = q.get("topic")?.toLowerCase();
+    return mockLedger().filter((t) => !topic || t.topic.toLowerCase().includes(topic)) as T;
+  }
+
+  m = /^\/ledger\/lineage\/(\w+)$/.exec(p);
+  if (method === "GET" && m) {
+    const lineage = mockLineage(m[1]);
+    if (!lineage) throw new MockHttpError(`No decision ${m[1]}.`, 404);
+    return lineage as T;
+  }
 
   throw new MockHttpError(`No mock for ${method} ${p}`, 404);
 }

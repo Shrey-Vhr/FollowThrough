@@ -76,3 +76,41 @@ class VoiceAction(BaseModel):
 class VoiceCommandResult(BaseModel):
     actions: list[VoiceAction] = Field(description="The actions parsed from the voice command, in order.")
     preview: str = Field(description="One human-readable sentence describing what will happen.")
+
+
+class AgendaTopics(BaseModel):
+    topics: list[str] = Field(description="1 to 5 short topic phrases (2-4 words each) covered by the agenda, e.g. 'launch date', 'pricing', 'OTP login bug'.")
+
+
+class BriefHistoryItem(BaseModel):
+    date: str = Field(description="Meeting date, yyyy-mm-dd, copied from the facts.")
+    meeting_title: str = Field(description="Meeting title, copied from the facts.")
+    statement: str = Field(description="What was decided then. Append ' (superseded)' if a later decision replaced it.")
+
+
+class BriefTask(BaseModel):
+    title: str = Field(description="Task title.")
+    owner: Optional[str] = Field(description="Owner name, or null if nobody owns it.")
+    deadline: Optional[str] = Field(description="Deadline yyyy-mm-dd if known, else the raw wording, else null.")
+    status: str = Field(description="Task status copied from the facts.")
+    rollover_count: int = Field(description="How many meetings the task has slipped, copied from the facts.")
+
+
+class BriefTopic(BaseModel):
+    topic: str = Field(description="The agenda topic this section covers.")
+    current_decision: Optional[str] = Field(description="The decision that stands today, one sentence; null if nothing was decided.")
+    history: list[BriefHistoryItem] = Field(description="Past decisions on this topic, oldest first.")
+    open_conflicts: list[str] = Field(description="One short sentence per unresolved conflict or disagreement on this topic.")
+    open_tasks: list[BriefTask] = Field(description="Tasks on this topic that are not completed.")
+    unresolved: list[str] = Field(description="Gaps: tasks with no owner, vague deadlines, open questions. One short sentence each.")
+    suggested_questions: list[str] = Field(description="At most 3 concrete questions to ask in the meeting.")
+
+
+class BriefOut(BaseModel):
+    headline: str = Field(description="One sentence: the most important thing to know going into the meeting.")
+    topics: list[BriefTopic] = Field(description="One section per agenda topic, in agenda order.")
+
+
+class DigestEmail(BaseModel):
+    subject: str = Field(description="Short email subject line.")
+    body: str = Field(description="Plain-text email body, under 180 words, with '- ' bullet points.")

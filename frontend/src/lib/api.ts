@@ -1,5 +1,11 @@
 import { API_URL, USE_MOCKS } from "./config";
 import type {
+  Brief,
+  BriefBody,
+  Commitment,
+  DigestResult,
+  LedgerLineage,
+  LedgerTopic,
   ImportWisprBody,
   ImportWisprResult,
   Issue,
@@ -116,4 +122,11 @@ export const followthrough = {
   wisprMeetings: () => api<WisprMeeting[]>("/wispr/meetings"),
   importWispr: (body: ImportWisprBody) =>
     api<ImportWisprResult>("/meetings/import/wispr", { method: "POST", json: body }),
+  createBrief: (body: BriefBody) => api<Brief>("/briefs", { method: "POST", json: body }),
+  briefs: () => api<Brief[]>("/briefs"),
+  brief: (id: number | string) => api<Brief>(`/briefs/${id}`),
+  runDigest: () => api<DigestResult>("/digests/run", { method: "POST", json: {} }),
+  commitments: () => api<Commitment[]>("/commitments"),
+  ledger: (p: { topic?: string } = {}) => api<LedgerTopic[]>(`/ledger/decisions${qs(p)}`),
+  lineage: (decisionId: number | string) => api<LedgerLineage>(`/ledger/lineage/${decisionId}`),
 };

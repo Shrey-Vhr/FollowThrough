@@ -8,6 +8,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.agents import runtime
+from app.agents.graphs.digest import DIGEST_RUN_PREFIX, confirm_digest_run
 from app.agents.graphs.ingest import resume_run
 from app.agents.graphs.voice import parse_voice_command
 from app.agents.review import preview_actions, summarize_proposal
@@ -150,6 +151,9 @@ async def confirm(body: ConfirmIn):
                 for a in actions
                 if ids & set(a["proposal_ids"])
             ]
+            if run_id.startswith(DIGEST_RUN_PREFIX):  # weekly-digest emails: no paused graph to resume
+                await confirm_digest_run(runtime.get_store(), runtime.get_executor(), run_id, run_actions)
+                continue
             snapshot = await graph.aget_state({"configurable": {"thread_id": run_id}})
             if not snapshot.values:
                 raise HTTPException(404, f"Run {run_id} is unknown (was the server restarted?).")

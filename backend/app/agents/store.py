@@ -5,6 +5,7 @@ See STORE_CONTRACT.md for the argument/return shapes and table mapping.
 """
 import re
 from copy import deepcopy
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Protocol
 
@@ -29,6 +30,16 @@ class Store(Protocol):
     def save_proposals(self, meeting_id, run_id, proposals: list[dict]) -> list[dict]: ...
     def get_proposals(self, run_id: str | None = None, status: str | None = None) -> list[dict]: ...
     def update_proposal(self, proposal_id: int, fields: dict) -> None: ...
+    # ---- insights (briefs, digest, ledger) ----
+    def list_decisions(self, topic: str | None = None) -> list[dict]: ...
+    def list_tasks(self, owner_id=None, status: str | None = None) -> list[dict]: ...
+    def list_task_updates(self, task_id) -> list[dict]: ...
+    def list_issues(self, status: str | None = None, issue_type: str | None = None) -> list[dict]: ...
+    def search_decisions(self, embedding: list[float], k: int) -> list[dict]: ...
+    def search_tasks(self, embedding: list[float], k: int) -> list[dict]: ...
+    def save_brief(self, brief: dict) -> dict: ...
+    def get_brief(self, brief_id) -> dict: ...
+    def list_briefs(self) -> list[dict]: ...
 
 
 _SPEAKER_SUFFIX = re.compile(r"\s*\(.*?\)\s*$")
@@ -66,6 +77,7 @@ class InMemoryStore:
         self.task_updates: list[dict] = []
         self.issues: dict[int, dict] = {}
         self.proposals: list[dict] = []
+        self.briefs: dict[int, dict] = {}
         self._ids: dict[str, int] = {}
         for p in people or DEFAULT_PEOPLE:
             self.people.append({"id": self._next("people"), **deepcopy(p)})
@@ -216,3 +228,101 @@ class InMemoryStore:
                 p.update(deepcopy(fields))
                 return
         raise KeyError(f"no proposal {proposal_id}")
+
+    # ---- insights ------------------------------------------------------
+    def _superseded_by(self) -> dict[int, int]:
+        """decision id -> id of the newest decision that replaced it (via a contradicts/supersedes conflict)."""
+        out: dict[int, int] = {}
+        for i in sorted(self.issues.values(), key=lambda i: i["id"]):
+            if i["type"] != "conflict" or i.get("details", {}).get("relation") not in ("contradicts", "supersedes"):
+                continue
+            old, new = i.get("related_decision_id"), i.get("decision_id")
+            if old is not None and new is not None and old != new:
+                out[old] = new
+        return out
+
+    def _decision_row(self, d: dict, superseded: dict[int, int]) -> dict:
+        meeting = self.meetings[d["meeting_id"]]
+        row = {k: v for k, v in d.items() if k != "embedding"}
+        by = superseded.get(d["id"])
+        row.update(
+            meeting_title=meeting["title"],
+            held_at=meeting["held_at"],
+            status="superseded" if by is not None else "current",
+            superseded_by=by,
+        )
+        return row
+
+    def _task_row(self, t: dict) -> dict:
+        meeting = self.meetings[t["meeting_id"]]
+        owner = next((p for p in self.people if p["id"] == t.get("owner_id")), None)
+        row = {k: v for k, v in t.items() if k != "embedding"}
+        row.update(
+            owner_name=owner["name"] if owner else None,
+            meeting_title=meeting["title"],
+            meeting_date=meeting["held_at"][:10],
+        )
+        row.setdefault("deadline", None)
+        row.setdefault("deadline_confidence", "none")
+        return row
+
+    def list_decisions(self, topic: str | None = None) -> list[dict]:
+        superseded = self._superseded_by()
+        rows = [
+            self._decision_row(d, superseded)
+            for d in self.decisions.values()
+            if topic is None or topic.lower() in d["topic"].lower()
+        ]
+        return deepcopy(sorted(rows, key=lambda r: (r["held_at"], r["id"])))
+
+    def list_tasks(self, owner_id=None, status: str | None = None) -> list[dict]:
+        rows = [
+            self._task_row(t)
+            for t in self.tasks.values()
+            if (owner_id is None or t.get("owner_id") == owner_id) and (status is None or t["status"] == status)
+        ]
+        return deepcopy(sorted(rows, key=lambda r: r["id"]))
+
+    def list_task_updates(self, task_id) -> list[dict]:
+        rows = []
+        for u in self.task_updates:
+            if u["task_id"] != task_id:
+                continue
+            meeting = self.meetings[u["meeting_id"]]
+            rows.append({**u, "meeting_title": meeting["title"], "meeting_date": meeting["held_at"][:10]})
+        return deepcopy(sorted(rows, key=lambda r: r["id"]))
+
+    def list_issues(self, status: str | None = None, issue_type: str | None = None) -> list[dict]:
+        return [
+            deepcopy(i)
+            for i in sorted(self.issues.values(), key=lambda i: i["id"])
+            if (status is None or i["status"] == status) and (issue_type is None or i["type"] == issue_type)
+        ]
+
+    def search_decisions(self, embedding, k) -> list[dict]:
+        superseded = self._superseded_by()
+        scored = [
+            {**self._decision_row(d, superseded), "similarity": cosine(embedding, d["embedding"])}
+            for d in self.decisions.values()
+            if d.get("embedding") is not None
+        ]
+        return deepcopy(sorted(scored, key=lambda r: r["similarity"], reverse=True)[:k])
+
+    def search_tasks(self, embedding, k) -> list[dict]:
+        scored = [
+            {**self._task_row(t), "similarity": cosine(embedding, t["embedding"])}
+            for t in self.tasks.values()
+            if t.get("embedding") is not None
+        ]
+        return deepcopy(sorted(scored, key=lambda r: r["similarity"], reverse=True)[:k])
+
+    def save_brief(self, brief: dict) -> dict:
+        row = {**deepcopy(brief), "id": self._next("briefs"), "created_at": datetime.now(timezone.utc).isoformat()}
+        self.briefs[row["id"]] = row
+        return deepcopy(row)
+
+    def get_brief(self, brief_id) -> dict:
+        return deepcopy(self.briefs[brief_id])
+
+    def list_briefs(self) -> list[dict]:
+        return deepcopy(sorted(self.briefs.values(), key=lambda b: b["id"], reverse=True))

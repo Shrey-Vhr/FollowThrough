@@ -25,7 +25,7 @@ export function PersonAvatar({
   className,
 }: {
   name: string;
-  size?: "sm" | "default";
+  size?: "sm" | "default" | "lg";
   className?: string;
 }) {
   const p = resolvePerson(name);

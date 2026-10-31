@@ -88,7 +88,7 @@ Partial update of `issues`. Keys sent: `status`, `resolved_by_decision_id`.
 Input keys: `kind, payload, issue_id (optional), task_id (optional)`. Store defaults
 `status='pending'`. Returns inserted rows with an **integer `id`**, `meeting_id`, `run_id`.
 Table `proposals(id serial, run_id, meeting_id, kind, payload jsonb, status, issue_id, task_id)`.
-- `kind`: `notion_task | slack_message`
+- `kind`: `notion_task | slack_message | email`
 - `status`: `pending | approved | rejected | sent | failed | superseded` (`executed` is replaced by
   `sent`/`failed`; `superseded` = a later meeting recommitted/completed the task, so this pending
   proposal is stale. **Add `'superseded'` to the `proposals.status` check constraint in `db/schema.sql`.**)
@@ -104,6 +104,52 @@ by `id`. Both `None` returns every proposal. Rows include `result` once executed
 ### `update_proposal(proposal_id: int, fields: dict) -> None`
 Partial update of `proposals`. Keys sent: `status`, `payload` (the whole merged jsonb), `result`.
 Unknown id → raise (the in-memory store raises `KeyError`).
+
+## Insights reads (briefs, digest, ledger, commitments)
+
+None of these return `embedding`. `people` rows may now carry an optional `email` (add `email text`
+to `people`); the weekly digest skips people without one.
+
+### `list_decisions(topic: str | None = None) -> list[dict]`
+All decisions (optionally `topic ilike %topic%`), ordered by `held_at`, then `id`. Row: `{id,
+meeting_id, topic, statement, made_by, source_quote, meeting_title, held_at, status, superseded_by}`.
+`status` is derived, not stored: `"superseded"` if some `conflict` issue with `details.relation in
+(contradicts, supersedes)` has `related_decision_id = this id` (then `superseded_by` = that issue's
+`decision_id`, the newest one if several), else `"current"` with `superseded_by = null`.
+
+### `list_tasks(owner_id=None, status: str | None = None) -> list[dict]`
+All tasks, filtered when given, ordered by `id`. Row: all task columns (`id, meeting_id, title,
+owner_id, deadline_raw, deadline, deadline_confidence, status, rollover_count, source_quote`) plus
+`owner_name` (people.name or null), `meeting_title`, `meeting_date` (`yyyy-mm-dd`).
+
+### `list_task_updates(task_id) -> list[dict]`
+`task_updates` rows for the task, oldest first: `{id, task_id, meeting_id, update_type, quote,
+meeting_title, meeting_date}`.
+
+### `list_issues(status: str | None = None, issue_type: str | None = None) -> list[dict]`
+Full issue rows (see `save_issue`), any status unless filtered, ordered by `id`.
+
+### `search_decisions(embedding, k) -> list[dict]` / `search_tasks(embedding, k) -> list[dict]`
+Vector search over **all** meetings (unlike `match_decisions`), top `k`, best first. Rows are the
+`list_decisions` / `list_tasks` rows plus `similarity` (cosine, higher = closer).
+
+### `list_briefs() -> list[dict]`
+All briefs, newest first (`id` descending).
+
+## Insights writes
+
+### `save_brief(brief: dict) -> dict`
+Input: `{agenda, meeting_at (nullable), headline, topics: [...]}` (see `BriefOut` in `schemas.py`).
+Returns the row with `id` and `created_at`. Table `briefs(id serial, agenda text, meeting_at
+timestamptz, headline text, topics jsonb, created_at)`. `get_brief(brief_id) -> dict` returns the
+same row (raise if unknown; the in-memory store raises `KeyError`).
+
+### Email proposals (weekly digest)
+`save_proposals` is also called with `meeting_id = None` and `kind = "email"`: make
+`proposals.meeting_id` nullable and add `'email'` to the `kind` check. Payload `{to, to_name,
+subject, body}`; review edits may overwrite `body` via `edit_text`. The `run_id` is
+`"digest-<uuid>"`; these runs have no ingest-graph checkpoint, so `/proposals/confirm` applies the
+review and executes them directly (see `api_proposals.py`).
 
 ## For Pragti
 

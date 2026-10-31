@@ -125,6 +125,7 @@ const m3Issues: Issue[] = [
     id: 2, type: "conflict", status: "open", ...M3,
     title: "Launch date moved from Nov 15 to Nov 30",
     details: {
+      topic: "Launch date",
       past: { statement: "Tiffinly launches on November 15.", meeting_title: "Tiffinly Launch Kickoff", held_at: "2026-10-17", source_quote: "We launch on November 15." },
       new: { statement: "Launch moves to November 30.", meeting_title: "Tiffinly Launch Review", held_at: "2026-10-31", source_quote: "Let's move the launch to November 30." },
       explanation: "The launch slipped by 15 days. Payments work is the stated cause, so the Razorpay and pricing changes below likely belong with this one.",
@@ -135,6 +136,7 @@ const m3Issues: Issue[] = [
     id: 3, type: "conflict", status: "open", ...M3,
     title: "Payments provider switched from Stripe to Razorpay",
     details: {
+      topic: "Payments provider",
       past: { statement: "Use Stripe for payments.", meeting_title: "Tiffinly Launch Kickoff", held_at: "2026-10-17", source_quote: "we'll use Stripe for payments." },
       new: { statement: "Switch to Razorpay for payments.", meeting_title: "Tiffinly Launch Review", held_at: "2026-10-31", source_quote: "Let's go with Razorpay instead of Stripe." },
       explanation: "Stripe was chosen on Oct 17. Pragti raised concerns on Oct 24, and Stripe's India verification is still stalled, so the team is replacing it.",
@@ -145,6 +147,7 @@ const m3Issues: Issue[] = [
     id: 4, type: "conflict", status: "open", ...M3,
     title: "Monthly plan price cut from ₹1,499 to ₹999",
     details: {
+      topic: "Pricing",
       past: { statement: "The monthly meal plan costs ₹1,499.", meeting_title: "Tiffinly Launch Kickoff", held_at: "2026-10-17", source_quote: "The monthly plan will be ₹1,499." },
       new: { statement: "Monthly plan drops to ₹999.", meeting_title: "Tiffinly Launch Review", held_at: "2026-10-31", source_quote: "Let's drop the monthly plan to ₹999." },
       explanation: "A 33% price cut. Anything already shown to beta users at ₹1,499 needs updating.",

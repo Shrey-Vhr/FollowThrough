@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { followthrough as ft } from "./api";
 import { keys } from "./queries";
-import type { Issue, IssueAction, MeetingDetail, ReviewAction } from "./types";
+import type { BriefBody, Issue, IssueAction, MeetingDetail, ReviewAction } from "./types";
 
 const TOASTS: Record<IssueAction, { title: string; description: string }> = {
   supersede: { title: "Marked as superseded", description: "The newer decision now replaces the old one." },
@@ -73,5 +73,23 @@ export function useConfirmProposals() {
     mutationFn: (actions: ReviewAction[]) => ft.confirmProposals(actions),
     onSettled: () => void qc.invalidateQueries({ queryKey: ["proposals"] }),
     onError: (err) => toast.error("Couldn't send", { description: err.message }),
+  });
+}
+
+/** Build a brief from a typed or dictated agenda. */
+export function useCreateBrief() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: BriefBody) => ft.createBrief(body),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: keys.briefs }),
+  });
+}
+
+/** Draft one digest email per person into the Review Queue. Nothing is sent. */
+export function useRunDigest() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => ft.runDigest(),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["proposals"] }),
   });
 }

@@ -92,12 +92,12 @@ function Side({ label, text, muted }: { label: string; text: string; muted?: boo
   );
 }
 
-/** Compact dashboard row: old → new with meeting dates; links to the meeting. */
+/** Compact dashboard row: old → new with meeting dates; links to the topic in the Decision Ledger. */
 export function ConflictRow({ issue }: { issue: ConflictIssue }) {
   const { past, new: now } = issue.details;
   return (
     <Link
-      href={issue.meeting_id !== undefined ? `/meetings/${issue.meeting_id}` : "/meetings"}
+      href={`/ledger?topic=${encodeURIComponent(issue.details.topic ?? issue.title)}`}
       className="group flex items-start gap-3 px-4 py-3 outline-none transition-colors hover:bg-accent/40 focus-visible:bg-accent/40"
     >
       <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md bg-conflict/10 text-conflict">
