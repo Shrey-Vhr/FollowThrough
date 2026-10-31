@@ -27,6 +27,8 @@ class Store(Protocol):
     def save_issue(self, issue: dict) -> dict: ...
     def update_issue(self, issue_id, fields: dict) -> None: ...
     def save_proposals(self, meeting_id, run_id, proposals: list[dict]) -> list[dict]: ...
+    def get_proposals(self, run_id: str | None = None, status: str | None = None) -> list[dict]: ...
+    def update_proposal(self, proposal_id: int, fields: dict) -> None: ...
 
 
 _SPEAKER_SUFFIX = re.compile(r"\s*\(.*?\)\s*$")
@@ -200,3 +202,17 @@ class InMemoryStore:
             self.proposals.append(row)
             rows.append(deepcopy(row))
         return rows
+
+    def get_proposals(self, run_id: str | None = None, status: str | None = None) -> list[dict]:
+        return [
+            deepcopy(p)
+            for p in self.proposals
+            if (run_id is None or p["run_id"] == run_id) and (status is None or p["status"] == status)
+        ]
+
+    def update_proposal(self, proposal_id: int, fields: dict) -> None:
+        for p in self.proposals:
+            if p["id"] == proposal_id:
+                p.update(deepcopy(fields))
+                return
+        raise KeyError(f"no proposal {proposal_id}")

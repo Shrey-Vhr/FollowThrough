@@ -89,6 +89,16 @@ Input keys: `kind, payload, issue_id (optional), task_id (optional)`. Store defa
 `status='pending'`. Returns inserted rows with an **integer `id`**, `meeting_id`, `run_id`.
 Table `proposals(id serial, run_id, meeting_id, kind, payload jsonb, status, issue_id, task_id)`.
 - `kind`: `notion_task | slack_message`
-- `status`: `pending | approved | rejected | executed`
+- `status`: `pending | approved | rejected | sent | failed` (`executed` is replaced by `sent`/`failed`)
 - payloads: notion_task `{title, owner, owner_id, deadline, deadline_raw, source_quote}`;
-  slack_message `{channel, text}`.
+  slack_message `{channel, text}`. Review edits may add/overwrite payload keys `owner, owner_id,
+  due_date (yyyy-mm-dd; notion_task also gets `deadline`), text (notion_task also gets `title`)`.
+- Add column `result jsonb` (executor outcome `{ok, external_id, error}`, null until executed).
+
+### `get_proposals(run_id: str | None = None, status: str | None = None) -> list[dict]`
+Full proposal rows (see `save_proposals`), filtered by `run_id` and/or `status` when given, ordered
+by `id`. Both `None` returns every proposal. Rows include `result` once executed.
+
+### `update_proposal(proposal_id: int, fields: dict) -> None`
+Partial update of `proposals`. Keys sent: `status`, `payload` (the whole merged jsonb), `result`.
+Unknown id → raise (the in-memory store raises `KeyError`).

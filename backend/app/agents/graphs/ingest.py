@@ -2,24 +2,32 @@
 
 load_transcript -> extract -> resolve_dates -> embed_and_save_decisions
 -> detect_conflicts -> match_open_tasks -> save_new_tasks -> detect_gaps
--> build_proposals -> END
+-> build_proposals -> request_review -> human_review (interrupt) -> execute -> END
+
+Nothing is executed without a human: human_review pauses the run until the user resumes it with
+review actions (see review.py), and execute only touches proposals whose status is "approved".
 
 Every node returns an event and also streams it via the LangGraph custom stream.
 """
 import asyncio
+import inspect
+import logging
 import operator
 import re
 from datetime import datetime
 from pathlib import Path
-from typing import Annotated, Any, TypedDict
+from typing import Annotated, Any, AsyncIterator, Awaitable, Callable, TypedDict
 
 import dateparser
+from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.config import get_stream_writer
 from langgraph.graph import END, START, StateGraph
+from langgraph.types import Command, interrupt
 
 from app.agents.conflicts import classify_many, is_conflict
 from app.agents.extract import extract_meeting
 from app.agents.llm import embed_texts
+from app.agents.review import apply_review_actions, preview_actions
 from app.agents.schemas import Extraction, TaskUpdateMatch
 from app.agents.store import Store, cosine, match_person
 from app.agents.task_matching import find_duplicate_new_item, match_many
@@ -28,6 +36,17 @@ CONFLICT_CANDIDATE_MIN_SIM = 0.35
 DISAGREEMENT_RESOLVE_SIM = 0.5
 BATCH_DUPLICATE_SIM = 0.8
 MATCH_K = 5
+
+logger = logging.getLogger(__name__)
+
+# executor(proposal) -> {"ok": bool, "external_id": str | None, "error": str | None}; sync or async.
+Executor = Callable[[dict], "dict | Awaitable[dict]"]
+
+
+def dry_run_executor(proposal: dict) -> dict:
+    """Default executor: sends nothing, just logs what WOULD be sent."""
+    logger.info("[dry-run] would send %s #%s: %s", proposal["kind"], proposal["id"], proposal["payload"])
+    return {"ok": True, "external_id": f"dry-run-{proposal['id']}", "error": None}
 
 
 class IngestState(TypedDict, total=False):
@@ -52,7 +71,10 @@ class IngestState(TypedDict, total=False):
 
 def _emit(node: str, message: str, data: dict | None = None) -> dict:
     event = {"node": node, "status": "done", "message": message, "data": data or {}}
-    get_stream_writer()(event)
+    try:
+        get_stream_writer()(event)
+    except RuntimeError:  # node called outside a graph run (tests)
+        pass
     return event
 
 
@@ -100,8 +122,9 @@ def _decision_view(d: dict, title: str, date: str) -> dict:
 # ---- nodes -------------------------------------------------------------
 
 class IngestNodes:
-    def __init__(self, store: Store):
+    def __init__(self, store: Store, executor: Executor = dry_run_executor):
         self.store = store
+        self.executor = executor
 
     def load_transcript(self, state: IngestState) -> dict:
         meeting_id = state["meeting_id"]
@@ -453,7 +476,6 @@ class IngestNodes:
         )
         saved = self.store.save_proposals(state["meeting_id"], state["run_id"], proposals)
         event = _emit("build_proposals", f"Prepared {len(saved)} proposals for review", {"count": len(saved)})
-        # TODO: human_review interrupt node goes here (approve/reject/edit proposals) before END.
         return {"proposals": saved, "events": [event]}
 
     @staticmethod
@@ -502,6 +524,59 @@ class IngestNodes:
             "payload": {"channel": "team", "text": "\n".join(lines)},
         }
 
+    # -- human review & execution --
+
+    def request_review(self, state: IngestState) -> dict:
+        """Announce the pause. Separate from human_review because a resumed node re-runs from its
+        top, which would emit this event a second time."""
+        pending = self.store.get_proposals(state["run_id"], "pending")
+        event = _emit(
+            "human_review",
+            f"Waiting for your approval ({len(pending)} proposals)",
+            {"count": len(pending), "waiting": True},
+        )
+        return {"events": [event]}
+
+    def human_review(self, state: IngestState) -> dict:
+        run_id = state["run_id"]
+        pending = self.store.get_proposals(run_id, "pending")
+        resume = interrupt({"run_id": run_id, "meeting_id": state["meeting_id"], "proposals": pending})
+        actions = (resume or {}).get("actions", [])
+        apply_review_actions(self.store, pending, actions, state["people"])
+        event = _emit(
+            "human_review",
+            f"Applied review: {preview_actions(pending, actions)}",
+            {"actions": actions},
+        )
+        return {"proposals": self.store.get_proposals(run_id), "events": [event]}
+
+    async def execute(self, state: IngestState) -> dict:
+        run_id = state["run_id"]
+        events = []
+        # Only "approved" is picked up, so anything already sent/failed is never executed again.
+        for proposal in self.store.get_proposals(run_id, "approved"):
+            result = await self._run_executor(proposal)
+            status = "sent" if result["ok"] else "failed"
+            self.store.update_proposal(proposal["id"], {"status": status, "result": result})
+            message = (
+                f"Sent #{proposal['id']} ({proposal['kind']}) -> {result['external_id']}"
+                if result["ok"]
+                else f"Failed to send #{proposal['id']} ({proposal['kind']}): {result['error']}"
+            )
+            events.append(_emit("execute", message, {"proposal_id": proposal["id"], **result}))
+        if not events:
+            events.append(_emit("execute", "Nothing approved - nothing sent"))
+        return {"proposals": self.store.get_proposals(run_id), "events": events}
+
+    async def _run_executor(self, proposal: dict) -> dict:
+        try:
+            result = self.executor(proposal)
+            if inspect.isawaitable(result):
+                result = await result
+            return {"ok": bool(result["ok"]), "external_id": result.get("external_id"), "error": result.get("error")}
+        except Exception as exc:  # a failing integration must not take the run down
+            return {"ok": False, "external_id": None, "error": f"{type(exc).__name__}: {exc}"}
+
 
 NODE_ORDER = [
     "load_transcript",
@@ -513,11 +588,15 @@ NODE_ORDER = [
     "save_new_tasks",
     "detect_gaps",
     "build_proposals",
+    "request_review",
+    "human_review",
+    "execute",
 ]
 
 
-def build_ingest_graph(store: Store, checkpointer=None):
-    nodes = IngestNodes(store)
+def build_ingest_graph(store: Store, checkpointer=None, executor: Executor | None = None):
+    """A checkpointer is required for interrupt/resume; defaults to in-memory (swap in Postgres later)."""
+    nodes = IngestNodes(store, executor or dry_run_executor)
     graph = StateGraph(IngestState)
     for name in NODE_ORDER:
         graph.add_node(name, getattr(nodes, name))
@@ -525,4 +604,74 @@ def build_ingest_graph(store: Store, checkpointer=None):
     for a, b in zip(NODE_ORDER, NODE_ORDER[1:]):
         graph.add_edge(a, b)
     graph.add_edge(NODE_ORDER[-1], END)
-    return graph.compile(checkpointer=checkpointer)
+    return graph.compile(checkpointer=checkpointer or InMemorySaver())
+
+
+# ---- run helpers -------------------------------------------------------
+# The *_stream generators yield:
+#   {"type": "event", **event}                      for every node event (forward these over SSE)
+#   {"type": "interrupt", "proposals": [...]}       last item when paused for review
+#   {"type": "done", "proposals": [...]}            last item when the run finished
+
+
+def _config(run_id: str) -> dict:
+    return {"configurable": {"thread_id": run_id}}
+
+
+async def _stream(graph, graph_input, run_id: str) -> AsyncIterator[dict]:
+    paused: dict | None = None
+    async for mode, chunk in graph.astream(graph_input, _config(run_id), stream_mode=["custom", "updates"]):
+        if mode == "custom":
+            yield {"type": "event", **chunk}
+        elif "__interrupt__" in chunk:
+            paused = chunk["__interrupt__"][0].value
+    if paused is not None:
+        yield {"type": "interrupt", "proposals": paused["proposals"]}
+    else:
+        final = await graph.aget_state(_config(run_id))
+        yield {"type": "done", "proposals": final.values.get("proposals", [])}
+
+
+async def start_run_stream(
+    graph, meeting_id, run_id: str, use_cache: bool = False, cache_path: str | None = None
+) -> AsyncIterator[dict]:
+    state = {"run_id": run_id, "meeting_id": meeting_id, "use_cache": use_cache, "cache_path": cache_path}
+    async for item in _stream(graph, state, run_id):
+        yield item
+
+
+async def resume_run_stream(graph, run_id: str, actions: list[dict]) -> AsyncIterator[dict]:
+    snapshot = await graph.aget_state(_config(run_id))
+    if not snapshot.values:
+        raise ValueError(f"unknown run {run_id}")
+    if not snapshot.next:  # already finished: resuming again is a no-op, nothing is re-executed
+        yield {"type": "done", "proposals": snapshot.values.get("proposals", [])}
+        return
+    async for item in _stream(graph, Command(resume={"actions": actions}), run_id):
+        yield item
+
+
+async def _collect(stream: AsyncIterator[dict], on_event: Callable[[dict], None] | None) -> list[dict]:
+    result: list[dict] = []
+    async for item in stream:
+        if item["type"] == "event":
+            if on_event:
+                on_event(item)
+        else:
+            result = item["proposals"]
+    return result
+
+
+async def start_run(
+    graph, meeting_id, run_id: str, use_cache: bool = False, cache_path: str | None = None,
+    on_event: Callable[[dict], None] | None = None,
+) -> list[dict]:
+    """Run until the approval pause; returns the pending proposals."""
+    return await _collect(start_run_stream(graph, meeting_id, run_id, use_cache, cache_path), on_event)
+
+
+async def resume_run(
+    graph, run_id: str, actions: list[dict], on_event: Callable[[dict], None] | None = None
+) -> list[dict]:
+    """Resume a paused run with review actions; returns the final proposals."""
+    return await _collect(resume_run_stream(graph, run_id, actions), on_event)
