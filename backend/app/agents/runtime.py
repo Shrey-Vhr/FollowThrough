@@ -18,6 +18,7 @@ from app.agents.store import InMemoryStore, Store
 
 _store: Store | None = None
 _checkpointer = None
+_external_checkpointer = False  # set by set_checkpointer(); reset() must not drop it
 
 
 def use_supabase_store() -> bool:
@@ -49,6 +50,14 @@ def get_checkpointer():
     return _checkpointer
 
 
+def set_checkpointer(checkpointer) -> None:
+    """Plug in a checkpointer created elsewhere (the Postgres saver, built in the FastAPI lifespan)."""
+    global _checkpointer, _external_checkpointer
+    _checkpointer = checkpointer
+    _external_checkpointer = True
+    get_ingest_graph.cache_clear()
+
+
 def get_executor() -> Executor:
     # TODO(Pragti): return the real Notion/Slack/email executor here.
     return dry_run_executor
@@ -63,5 +72,6 @@ def reset() -> None:
     """Drop the singletons (fresh in-memory store, checkpointer and graph). Used by /dev/seed-demo."""
     global _store, _checkpointer
     _store = None
-    _checkpointer = None
+    if not _external_checkpointer:
+        _checkpointer = None
     get_ingest_graph.cache_clear()

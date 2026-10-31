@@ -126,3 +126,9 @@ returns table (id uuid, title text, owner_id uuid, deadline date, similarity flo
 language sql stable as $$
   select * from match_open_tasks(q, k, exclude_meeting);
 $$;
+
+-- Milestone 2: store needs
+alter table briefs add column if not exists headline text, add column if not exists topics jsonb;
+alter table proposals alter column meeting_id drop not null;
+alter table people add column if not exists email text;
+create index if not exists segments_meeting_idx on segments (meeting_id, idx);
