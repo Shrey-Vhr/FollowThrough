@@ -1,14 +1,22 @@
+import asyncio
+import sys
+
+if sys.platform == "win32":  # psycopg async needs the selector loop
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.config import FRONTEND_ORIGIN
-from app.api import meetings, wispr
+
 from app.agents import api_dev, api_insights, api_proposals
+from app.api import meetings, wispr
+from app.config import FRONTEND_ORIGIN
 
 app = FastAPI(title="FollowThrough API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[FRONTEND_ORIGIN, "http://localhost:3000"],
+    allow_origins=list({FRONTEND_ORIGIN, "http://localhost:3000", "http://localhost:3001",
+                        "http://127.0.0.1:3000", "http://127.0.0.1:3001"}),
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -19,13 +27,5 @@ def health():
     return {"status": "ok"}
 
 
-<<<<<<< HEAD
-# app.include_router(meetings.router)
-# app.include_router(wispr.router)
-app.include_router(api_proposals.router)
-app.include_router(api_dev.router)
-app.include_router(api_insights.router)
-=======
-app.include_router(meetings.router)
-app.include_router(wispr.router)
->>>>>>> d007318 (feat(api): add transcript ingestion via paste, upload and Wispr MCP)
+for r in (meetings.router, wispr.router, api_proposals.router, api_dev.router, api_insights.router):
+    app.include_router(r)

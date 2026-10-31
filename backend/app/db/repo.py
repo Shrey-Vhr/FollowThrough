@@ -1,3 +1,5 @@
+import re
+
 from app.db.client import get_db
 
 
@@ -6,7 +8,7 @@ def list_people():
 
 
 def resolve_person_id(speaker: str, people: list[dict]):
-    s = speaker.strip().lower()
+    s = re.sub(r"\s*\(you\)\s*$", "", speaker.strip(), flags=re.I).lower()
     for p in people:
         names = [p["name"]] + (p.get("aliases") or [])
         if any(s == n.lower() for n in names):
@@ -66,8 +68,11 @@ def get_meeting_full(meeting_id: str):
     if not rows:
         return None
     meeting = rows[0]
-    meeting["segments"] = db.table("segments").select("*").eq("meeting_id", meeting_id).order("id").execute().data
+    meeting["segments"] = db.table("segments").select("id,speaker,person_id,text").eq("meeting_id", meeting_id).order("idx").order("id").execute().data
+    people = {p["id"]: p["name"] for p in list_people()}
     meeting["decisions"] = db.table("decisions").select("id,topic,statement,made_by,source_quote,status").eq("meeting_id", meeting_id).execute().data
     meeting["tasks"] = db.table("tasks").select("id,title,owner_id,deadline,deadline_raw,deadline_confidence,status,rollover_count,source_quote").eq("meeting_id", meeting_id).execute().data
+    for t in meeting["tasks"]:
+        t["owner_name"] = people.get(t.get("owner_id"))
     meeting["issues"] = db.table("issues").select("*").eq("meeting_id", meeting_id).execute().data
     return meeting
