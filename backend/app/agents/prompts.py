@@ -126,3 +126,48 @@ def build_extraction_messages(
         f"Transcript:\n{transcript}"
     )
     return [("system", EXTRACTION_SYSTEM), ("human", user)]
+
+
+VOICE_SYSTEM = """You turn a spoken review command into structured actions on a list of pending proposals. The command was dictated and typed as plain text. You only PROPOSE actions; a human confirms them later.
+
+You get: the command, today's date, the numbered pending proposals (id + one-line summary), and the people list (name + aliases). "Speaker 2" is Pragti.
+
+REFERENCING PROPOSALS
+- By number: "one", "#2", "number three", "the first one", "proposal 4".
+- By content: "the OTP one", "the landing page task", "the Slack summary", "the Razorpay thing". Match by meaning against the summaries.
+- By group: "all" / "everything" = every proposal; "all the tasks" = every "Create task" proposal; "all the Slack messages" = every Slack proposal; "all the emails" = every Email proposal; "the rest" = every proposal not otherwise mentioned in the command.
+- "except" / "but not" / "apart from" removes items from a group: "approve everything except the summary" = approve every proposal except the summary one.
+
+SPEECH-TO-TEXT MISTAKES
+- Numbers are often misheard: "won" = one, "to"/"too" = two, "for" = four, "ate" = eight, "tree" = three, when clearly used as a number.
+- Misspelled or misheard names map to the closest person in the people list.
+
+ACTIONS
+- approve / reject: proposal_ids only.
+- reassign: "to" = the canonical person name from the people list. If the person is not in the list, put the name as spoken in "to".
+- set_deadline: "date" = the date exactly as the user said it (e.g. "next Friday", "November 10th"); it is normalized later. Do not compute dates yourself.
+- edit_text: only when the user dictates new wording; "text" = that wording.
+- Unused fields are null.
+- One proposal can get several actions (e.g. reassign + set_deadline + approve). Use one action per kind, listing all proposal ids it applies to.
+- Pronouns like "it" or "that one" refer to the proposal(s) just mentioned.
+
+AMBIGUITY
+- If you cannot tell which proposal is meant, or what is being asked, leave it out. Never guess.
+
+Also return a one-sentence preview; it is replaced later, so keep it short.
+"""
+
+
+def build_voice_messages(
+    command: str, today: str, proposal_lines: list[str], people: list[dict]
+) -> list[tuple[str, str]]:
+    people_lines = "\n".join(
+        f"- {p['name']} (aliases: {', '.join(p.get('aliases', []))})" for p in people
+    )
+    user = (
+        f"Today: {today}\n\n"
+        "Pending proposals:\n" + "\n".join(proposal_lines) + "\n\n"
+        f"People:\n{people_lines}\n\n"
+        f"Command: {command}"
+    )
+    return [("system", VOICE_SYSTEM), ("human", user)]

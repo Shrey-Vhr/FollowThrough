@@ -138,3 +138,18 @@ def preview_actions(proposals: list[dict], actions: list[dict]) -> str:
     if waiting:
         sentences.append(f"{_join([label(i) for i in waiting])} {'stays' if len(waiting) == 1 else 'stay'} pending.")
     return " ".join(sentences) or "No changes."
+
+
+def summarize_proposal(p: dict) -> str:
+    """One line describing a proposal, for the LLM prompt and the UI."""
+    pl = p.get("payload", {})
+    kind = p["kind"]
+    if kind == "notion_task":
+        due = pl.get("due_date") or pl.get("deadline") or "no date"
+        return f"Create task: {pl.get('title')} → {pl.get('owner') or 'no owner'}, due {due}"
+    if kind == "slack_message":
+        target = pl.get("channel") or pl.get("user") or pl.get("to")
+        return f"Slack to {target}: {(pl.get('text') or '')[:70]}"
+    if kind == "email":
+        return f"Email to {pl.get('to')}: {pl.get('subject')}"
+    return f"{kind}: {pl}"
