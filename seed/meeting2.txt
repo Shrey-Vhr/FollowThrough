@@ -1,0 +1,18 @@
+Shrey Vohra (You): Weekly sync, Friday, October 24. Quick updates first: Pragti houses API spec.
+Pragti:  Still in progress, honestly. The order and subscription endpoints look... took longer than expected. I'll have the API spec done by Monday, October 27.
+Shrey Vohra (You):  Okay, Monday. My landing page is about half done; still on track for the 28th. And good news: Rahul finished the onboarding screens yesterday.
+Shrey Vohra (You):  They're in Figma.
+Pragti:  Nice. I saw them. They looked great.
+Pragti:  Now, I want to raise payments again. I really think we should switch to Razorpay.
+Shrey Vohra (You):  Why? We already decided on Stripe.
+Pragti:  Our users are students. They pay with UPI. Razorpay handles UPI natively, and Stripe's UPL support in India is limited for us.
+Pragti:  We'd lose people at checkout.
+Shrey Vohra (You):  But Stripe is faster to integrate, and I don't want to redo the payment flow this late.
+Pragti:  I get that. But the fast integration doesn't help if the students can't pay.
+Shrey Vohra (You):  I'm not convinced yet. Let's check it offline and decide later.
+Pragti:  Okay. One more thing: the OTP login is failing for some geo numbers. Someone needs to fix the OTP login bug before launch.
+Shrey Vohra (You):  Yeah, that's important. Let's look at it.
+Pragti:  Also, college outreach?
+Shrey Vohra (You):  About 60 sign-ups so far, still aiming for 200.
+Pragti:  Alright. See you next Friday—
+Shrey Vohra (You):  Alright, see you next Friday.

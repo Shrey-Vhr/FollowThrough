@@ -1,0 +1,15 @@
+Shrey Vohra (You): Okay, this is our Tiffany launch kickoff, Friday, October 17. Let's lock the big things today so we stop going in circles.
+Pragti:  Sounds good. First one is the launch date.
+Shrey Vohra (You):  We have decided the public beta launches on November 15. That gives us 4 weeks.
+Pragti:  Four weeks is tight but doable if the backend scope stays small.
+Shrey Vohra (You):  Agreed. Next, payments. We'll go with Shripe for payments; I've used it before, the docs are clean and setup is fast.
+Pragti:  Fine with me for now.
+Shrey Vohra (You):  Pricing: the monthly plan will be 1500, so 1500 rupees a month, with lunch and dinner included.
+Pragti:  Okay. Then from my side, the API spec is the blocker for the everything else. I'll finish the API set by Friday, October 24.
+Shrey Vohra (You):  Perfect. I'll own the landing page and have it live by October 28.
+Pragti:  What about design? The onboarding flow isn't designed yet.
+Shrey Vohra (You):  Rahul will design the onboarding screens by October 22. I'll tell him today.
+Pragti:  And who's reaching out to the colleagues for beta users?
+Shrey Vohra (You):  I'll handle that. Target is 200 beta users from GNU and nearby colleges before launch.
+Pragti:  Got it. So: launch November 15, Stripe 1499 a month, my API spec by the 24th, your landing page by the 28th, Rahul's screens by 22nd.
+Shrey Vohra (You):  That's it. Let's go build. See you next Friday.

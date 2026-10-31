@@ -1,0 +1,16 @@
+Shrey Vohra (You): Launch review, Friday, October 31. We need to be realistic today.
+Pragti:  Agreed. Where do we stand on the date?
+Shrey Vohra (You):  We are pushing the launch to November 30, 15:00, and happening with payments still open.
+Pragti:  Makes sense. And on payments, did you think about Razorpay?
+Shrey Vohra (You):  I did. You were right about UPI. We're switching to Razorpay for payments.
+Pragti:  Great. Then I'll integrate Razorpay by November 28.
+Shrey Vohra (You):  Also, pricing. Students in the survey said 1499 is too high; we're dropping the monthly plan to 999.
+Pragti:  Okay, 999. That changed the margins, but fine for beta.
+Shrey Vohra (You):  Now updates. Pragti, the API spec—
+Pragti:  Almost done. I'll wrap up the API spec by the next week-ish. The Razorpay change added new endpoints.
+Shrey Vohra (You):  Okay. My landing page needs the new pricing now, so the landing page will be like so.
+Pragti:  And the OTP login bug? Did anyone pick it up?
+Shrey Vohra (You):  No, nobody has taken it yet. It still needs fixing.
+Pragti:  We should assign that. Also, the one open question: do we need to generate GST invoices for subscriptions?
+Shrey Vohra (You):  Good question. I don't know yet. Let's find out.
+Shrey Vohra (You):  Okay, so launch November 30, Razorpay 999 a month, Razorpay integration by the 20th. Let's make this one stick.
