@@ -4,6 +4,7 @@ import { useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { ImportDialogProvider } from "@/components/wispr/import-dialog";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [client] = useState(
@@ -14,7 +15,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
   );
   return (
     <QueryClientProvider client={client}>
-      <TooltipProvider>{children}</TooltipProvider>
+      <TooltipProvider>
+        <ImportDialogProvider>{children}</ImportDialogProvider>
+      </TooltipProvider>
       <Toaster theme="dark" />
     </QueryClientProvider>
   );

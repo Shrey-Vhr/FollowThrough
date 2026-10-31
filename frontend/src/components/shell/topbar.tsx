@@ -7,12 +7,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { navFor } from "./nav";
+import { useImportDialog } from "@/components/wispr/import-dialog";
 import { SidebarContent } from "./sidebar";
 
 export function TopBar() {
   const pathname = usePathname();
   const { title, subtitle } = navFor(pathname);
   const [open, setOpen] = useState(false);
+  const importDialog = useImportDialog();
+  // The dashboard and meetings pages carry their own import button.
+  const showImport = pathname !== "/" && pathname !== "/meetings";
 
   return (
     <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur md:px-8">
@@ -50,11 +54,13 @@ export function TopBar() {
         </kbd>
       </div>
 
-      <Button size="sm" className="gap-1.5">
+      {showImport && (
+      <Button size="sm" className="gap-1.5" onClick={importDialog.open}>
         <Download className="size-3.5" />
         <span className="hidden sm:inline">Import from Wispr</span>
         <span className="sm:hidden">Import</span>
       </Button>
+      )}
     </header>
   );
 }

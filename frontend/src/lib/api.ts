@@ -1,5 +1,18 @@
-export const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+import { API_URL, USE_MOCKS } from "./config";
+import type {
+  ImportWisprBody,
+  ImportWisprResult,
+  Issue,
+  IssueAction,
+  IssueType,
+  MeetingDetail,
+  MeetingSummary,
+  Proposal,
+  Task,
+  WisprMeeting,
+} from "./types";
+
+export { API_URL, USE_MOCKS };
 
 export class ApiError extends Error {
   readonly status: number;
@@ -25,6 +38,8 @@ export async function api<T>(
   path: string,
   init: Omit<RequestInit, "body"> & { json?: unknown } = {},
 ): Promise<T> {
+  if (USE_MOCKS) return mockRequest<T>(path, init);
+
   const { json, headers, ...rest } = init;
   let res: Response;
   try {
@@ -60,3 +75,36 @@ export async function api<T>(
   }
   return data as T;
 }
+
+/** Mock mode: same paths and shapes, served from src/mocks (loaded lazily, never in real mode). */
+async function mockRequest<T>(path: string, init: { method?: string; json?: unknown }): Promise<T> {
+  const { mockApi, MockHttpError } = await import("@/mocks/handlers");
+  try {
+    return await mockApi<T>(path, init);
+  } catch (e) {
+    if (e instanceof MockHttpError) throw new ApiError(e.message, e.status);
+    throw e;
+  }
+}
+
+const qs = (params: Record<string, string | number | undefined>) => {
+  const sp = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) if (v !== undefined && v !== "") sp.set(k, String(v));
+  const s = sp.toString();
+  return s ? `?${s}` : "";
+};
+
+/** One typed function per endpoint in the API contract. */
+export const followthrough = {
+  meetings: () => api<MeetingSummary[]>("/meetings"),
+  meeting: (id: number) => api<MeetingDetail>(`/meetings/${id}`),
+  process: (id: number) => api<{ run_id: string }>(`/meetings/${id}/process`, { method: "POST" }),
+  issues: (p: { status?: string; type?: IssueType } = {}) => api<Issue[]>(`/issues${qs(p)}`),
+  patchIssue: (id: number, action: IssueAction) =>
+    api<Issue>(`/issues/${id}`, { method: "PATCH", json: { action } }),
+  tasks: (p: { due_within_days?: number } = {}) => api<Task[]>(`/tasks${qs(p)}`),
+  proposals: (p: { status?: string } = {}) => api<Proposal[]>(`/proposals${qs(p)}`),
+  wisprMeetings: () => api<WisprMeeting[]>("/wispr/meetings"),
+  importWispr: (body: ImportWisprBody) =>
+    api<ImportWisprResult>("/meetings/import/wispr", { method: "POST", json: body }),
+};
