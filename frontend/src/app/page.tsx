@@ -3,6 +3,7 @@
 import { AlertTriangle, CalendarClock, CalendarDays, CheckCircle2, Download, ShieldCheck, TimerOff } from "lucide-react";
 import Link from "next/link";
 import { ConflictRow } from "@/components/conflict-card";
+import { SimulateTime } from "@/components/dashboard/simulate-time";
 import { DeadlineRow } from "@/components/dashboard/deadline-row";
 import { EmptyState } from "@/components/empty-state";
 import { countIssues, MeetingRow } from "@/components/meeting/meeting-row";
@@ -11,6 +12,7 @@ import { StatCard } from "@/components/stat-card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useImportDialog } from "@/components/wispr/import-dialog";
+import { DEMO_MODE } from "@/lib/config";
 import { plural } from "@/lib/format";
 import { useIssues, useMeetings, useProposals, useTasks } from "@/lib/queries";
 import { useNow, useToday } from "@/lib/use-today";
@@ -71,9 +73,12 @@ export default function Dashboard() {
     <div className="space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <Greeting conflicts={conflicts?.length} vague={vague} />
-        <Button size="lg" className="gap-1.5" onClick={importDialog.open}>
-          <Download /> Import from Wispr
-        </Button>
+        <div className="flex flex-wrap items-center gap-3">
+          {DEMO_MODE && <SimulateTime />}
+          <Button size="lg" className="gap-1.5" onClick={importDialog.open}>
+            <Download /> Import from Wispr
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
