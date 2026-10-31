@@ -1,0 +1,52 @@
+{
+  "decisions": [],
+  "action_items": [
+    {
+      "title": "Complete the API spec",
+      "owner": "Pragti",
+      "deadline_raw": "Monday, October 27",
+      "deadline_confidence": "exact",
+      "source_quote": "Pragti:  Still in progress, honestly. The order and subscription endpoints look... took longer than expected. I'll have the API spec done by Monday, October 27.",
+      "ts_seconds": null
+    },
+    {
+      "title": "Review the payments options offline and decide on a provider",
+      "owner": null,
+      "deadline_raw": "later",
+      "deadline_confidence": "vague",
+      "source_quote": "Shrey Vohra (You):  I'm not convinced yet. Let's check it offline and decide later.",
+      "ts_seconds": null
+    },
+    {
+      "title": "Fix the OTP login bug for geo numbers",
+      "owner": null,
+      "deadline_raw": "before launch",
+      "deadline_confidence": "vague",
+      "source_quote": "Pragti:  Okay. One more thing: the OTP login is failing for some geo numbers. Someone needs to fix the OTP login bug before launch.",
+      "ts_seconds": null
+    }
+  ],
+  "disagreements": [
+    {
+      "topic": "payments provider",
+      "positions": [
+        {
+          "person": "Pragti",
+          "view": "Switch to Razorpay because it supports UPI natively for the team's student users."
+        },
+        {
+          "person": "Shrey Vohra",
+          "view": "Keep Stripe because it is faster to integrate and changing the payment flow this late is undesirable."
+        }
+      ],
+      "resolved": false,
+      "source_quote": "Shrey Vohra (You):  But Stripe is faster to integrate, and I don't want to redo the payment flow this late."
+    }
+  ],
+  "open_questions": [
+    {
+      "question": "Should the team switch from Stripe to Razorpay for payments?",
+      "raised_by": "Pragti"
+    }
+  ]
+}

@@ -1,0 +1,77 @@
+{
+  "decisions": [
+    {
+      "topic": "launch date",
+      "statement": "The public beta will launch on November 15.",
+      "made_by": "Shrey Vohra",
+      "source_quote": "Shrey Vohra (You):  We have decided the public beta launches on November 15. That gives us 4 weeks.",
+      "ts_seconds": null
+    },
+    {
+      "topic": "payments provider",
+      "statement": "Use Shripe as the payments provider.",
+      "made_by": "Shrey Vohra",
+      "source_quote": "Shrey Vohra (You):  Agreed. Next, payments. We'll go with Shripe for payments; I've used it before, the docs are clean and setup is fast.",
+      "ts_seconds": null
+    },
+    {
+      "topic": "pricing",
+      "statement": "The monthly plan will cost 1500 rupees and include lunch and dinner.",
+      "made_by": "Shrey Vohra",
+      "source_quote": "Shrey Vohra (You):  Pricing: the monthly plan will be 1500, so 1500 rupees a month, with lunch and dinner included.",
+      "ts_seconds": null
+    }
+  ],
+  "action_items": [
+    {
+      "title": "Finish the API spec",
+      "owner": "Pragti",
+      "deadline_raw": "by Friday, October 24",
+      "deadline_confidence": "exact",
+      "source_quote": "Pragti:  Four weeks is tight but doable if the backend scope stays small.",
+      "ts_seconds": null
+    },
+    {
+      "title": "Finish the API set",
+      "owner": "Pragti",
+      "deadline_raw": "by Friday, October 24",
+      "deadline_confidence": "exact",
+      "source_quote": "Pragti:  Okay. Then from my side, the API spec is the blocker for the everything else. I'll finish the API set by Friday, October 24.",
+      "ts_seconds": null
+    },
+    {
+      "title": "Make the landing page live",
+      "owner": "Shrey Vohra",
+      "deadline_raw": "by October 28",
+      "deadline_confidence": "exact",
+      "source_quote": "Shrey Vohra (You):  Perfect. I'll own the landing page and have it live by October 28.",
+      "ts_seconds": null
+    },
+    {
+      "title": "Design the onboarding screens",
+      "owner": "Rahul",
+      "deadline_raw": "by October 22",
+      "deadline_confidence": "exact",
+      "source_quote": "Shrey Vohra (You):  Rahul will design the onboarding screens by October 22. I'll tell him today.",
+      "ts_seconds": null
+    },
+    {
+      "title": "Tell Rahul to design the onboarding screens",
+      "owner": "Shrey Vohra",
+      "deadline_raw": "today",
+      "deadline_confidence": "inferred",
+      "source_quote": "Shrey Vohra (You):  Rahul will design the onboarding screens by October 22. I'll tell him today.",
+      "ts_seconds": null
+    },
+    {
+      "title": "Reach out to colleagues at GNU and nearby colleges to recruit 200 beta users",
+      "owner": "Shrey Vohra",
+      "deadline_raw": "before launch",
+      "deadline_confidence": "inferred",
+      "source_quote": "Shrey Vohra (You):  I'll handle that. Target is 200 beta users from GNU and nearby colleges before launch.",
+      "ts_seconds": null
+    }
+  ],
+  "disagreements": [],
+  "open_questions": []
+}

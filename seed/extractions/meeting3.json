@@ -1,0 +1,74 @@
+{
+  "decisions": [
+    {
+      "topic": "launch date",
+      "statement": "The launch is being pushed to November 30 at 15:00, with payments still open.",
+      "made_by": "Shrey Vohra",
+      "source_quote": "Shrey Vohra (You):  We are pushing the launch to November 30, 15:00, and happening with payments still open.",
+      "ts_seconds": null
+    },
+    {
+      "topic": "payments provider",
+      "statement": "Razorpay will be used for payments.",
+      "made_by": "Shrey Vohra",
+      "source_quote": "Shrey Vohra (You):  I did. You were right about UPI. We're switching to Razorpay for payments.",
+      "ts_seconds": null
+    },
+    {
+      "topic": "monthly pricing",
+      "statement": "The monthly plan price is being dropped to 999.",
+      "made_by": "Shrey Vohra",
+      "source_quote": "Shrey Vohra (You):  Also, pricing. Students in the survey said 1499 is too high; we're dropping the monthly plan to 999.",
+      "ts_seconds": null
+    }
+  ],
+  "action_items": [
+    {
+      "title": "Integrate Razorpay",
+      "owner": "Pragti",
+      "deadline_raw": "by November 28",
+      "deadline_confidence": "exact",
+      "source_quote": "Pragti:  Great. Then I'll integrate Razorpay by November 28.",
+      "ts_seconds": null
+    },
+    {
+      "title": "Finish the API spec",
+      "owner": "Pragti",
+      "deadline_raw": "by the next week-ish",
+      "deadline_confidence": "vague",
+      "source_quote": "Pragti:  Almost done. I'll wrap up the API spec by the next week-ish. The Razorpay change added new endpoints.",
+      "ts_seconds": null
+    },
+    {
+      "title": "Update the landing page with the new pricing",
+      "owner": "Shrey Vohra",
+      "deadline_raw": "now",
+      "deadline_confidence": "vague",
+      "source_quote": "Shrey Vohra (You):  Okay. My landing page needs the new pricing now, so the landing page will be like so.",
+      "ts_seconds": null
+    },
+    {
+      "title": "Fix the OTP login bug",
+      "owner": null,
+      "deadline_raw": null,
+      "deadline_confidence": "none",
+      "source_quote": "Shrey Vohra (You):  No, nobody has taken it yet. It still needs fixing.",
+      "ts_seconds": null
+    },
+    {
+      "title": "Find out whether GST invoices are needed for subscriptions",
+      "owner": null,
+      "deadline_raw": null,
+      "deadline_confidence": "none",
+      "source_quote": "Shrey Vohra (You):  Good question. I don't know yet. Let's find out.",
+      "ts_seconds": null
+    }
+  ],
+  "disagreements": [],
+  "open_questions": [
+    {
+      "question": "Do we need to generate GST invoices for subscriptions?",
+      "raised_by": "Pragti"
+    }
+  ]
+}
