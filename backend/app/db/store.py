@@ -55,7 +55,7 @@ class SupabaseStore:
         )
 
     def list_people(self) -> list[dict]:
-        return self.db.table("people").select("id,name,aliases").execute().data
+        return self.db.table("people").select("id,name,email,slack_user_id,aliases").execute().data
 
     def get_open_tasks(self, exclude_meeting_id) -> list[dict]:
         tasks = (

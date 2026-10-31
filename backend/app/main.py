@@ -12,7 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.agents import runtime
 from app.agents import api_dev, api_insights, api_proposals
-from app.api import dev_supabase, issues, meetings, runs, wispr
+from app.api import dev_clock, dev_supabase, issues, meetings, runs, wispr
 from app.config import DATABASE_URL, FRONTEND_ORIGIN
 
 logger = logging.getLogger(__name__)
@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     pool = None
+    scheduler = None
     if os.getenv("USE_POSTGRES_CHECKPOINTER", "").strip().lower() == "true":
         from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
         from psycopg_pool import AsyncConnectionPool
@@ -33,9 +34,21 @@ async def lifespan(app: FastAPI):
         await saver.setup()
         runtime.set_checkpointer(saver)
         logger.info("Postgres checkpointer enabled")
+    if os.getenv("SCHEDULER_ENABLED", "true").strip().lower() != "false":
+        from apscheduler.schedulers.asyncio import AsyncIOScheduler
+
+        from app.scheduler.reminders import send_due_reminders
+
+        scheduler = AsyncIOScheduler()
+        scheduler.add_job(send_due_reminders, "interval", minutes=1, id="reminders",
+                          max_instances=1, coalesce=True)
+        scheduler.start()
+        logger.info("Reminder scheduler started")
     try:
         yield
     finally:
+        if scheduler is not None:
+            scheduler.shutdown(wait=False)
         if pool is not None:
             await pool.close()
 
@@ -56,7 +69,7 @@ def health():
     return {"status": "ok"}
 
 
-for r in (meetings.router, wispr.router, runs.router, issues.router, dev_supabase.router, api_proposals.router, api_dev.router, api_insights.router):
+for r in (meetings.router, wispr.router, runs.router, issues.router, dev_clock.router, dev_supabase.router, api_proposals.router, api_dev.router, api_insights.router):
     app.include_router(r)
 
 

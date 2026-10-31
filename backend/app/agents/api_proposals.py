@@ -16,6 +16,7 @@ from app.agents.review import preview_actions, summarize_proposal
 router = APIRouter(prefix="/proposals", tags=["proposals"])
 
 EDITABLE_STATUSES = {"pending", "rejected"}
+DONE_STATUSES = {"sent", "rejected", "superseded"}
 _confirm_lock = asyncio.Lock()  # two concurrent confirms must not resume the same run twice
 
 
@@ -143,6 +144,9 @@ async def confirm(body: ConfirmIn):
         for p in pending:
             by_run[p["run_id"]].append(p)
 
+        if not pending and referenced and all(everything[i]["status"] in DONE_STATUSES for i in referenced):
+            raise HTTPException(409, "Those proposals are already sent, rejected or superseded.")
+
         graph = runtime.get_ingest_graph()
         for run_id, group in by_run.items():
             ids = {p["id"] for p in group}
@@ -155,11 +159,10 @@ async def confirm(body: ConfirmIn):
                 await confirm_digest_run(runtime.get_store(), runtime.get_executor(), run_id, run_actions)
                 continue
             snapshot = await graph.aget_state({"configurable": {"thread_id": run_id}})
-            if not snapshot.values:
-                raise HTTPException(404, f"Run {run_id} is unknown (was the server restarted?).")
-            if not snapshot.next:
-                raise HTTPException(409, f"Run {run_id} already finished; its pending proposals can't be confirmed.")
-            await resume_run(graph, run_id, run_actions)
+            if snapshot.values and snapshot.next:  # still paused at human_review: resume the graph
+                await resume_run(graph, run_id, run_actions)
+            else:  # run already finished (or its checkpoint is gone): apply + execute directly
+                await confirm_digest_run(runtime.get_store(), runtime.get_executor(), run_id, run_actions)
 
         updated = {p["id"]: p for p in _all_sorted()}
         return {
