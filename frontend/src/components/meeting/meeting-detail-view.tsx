@@ -24,7 +24,7 @@ const HIGHLIGHT_MS = 2000;
 
 export function MeetingDetailView() {
   const params = useParams<{ id: string }>();
-  const id = Number(params.id);
+  const id = /^d+$/.test(params.id) ? Number(params.id) : params.id; // mock ids are numbers, Supabase ids are uuids
   const { data, isPending, isError } = useMeeting(id);
 
   if (isPending) return <DetailSkeleton />;

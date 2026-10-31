@@ -76,3 +76,7 @@ def get_meeting_full(meeting_id: str):
         t["owner_name"] = people.get(t.get("owner_id"))
     meeting["issues"] = db.table("issues").select("*").eq("meeting_id", meeting_id).execute().data
     return meeting
+
+
+def set_meeting_status(meeting_id: str, status: str) -> None:
+    get_db().table("meetings").update({"status": status}).eq("id", meeting_id).execute()

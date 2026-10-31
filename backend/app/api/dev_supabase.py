@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException
 from app.agents import runtime
 from app.agents.graphs.ingest import resume_run, start_run
 from app.api import runs
+from app.db import repo
 from app.services import seed
 
 router = APIRouter(prefix="/dev", tags=["dev"])
@@ -29,6 +30,7 @@ async def reset_supabase():
         run_id = str(uuid.uuid4())
         proposals = await start_run(graph, m["meeting_id"], run_id, use_cache=True, cache_path=m["cache_path"])
         await resume_run(graph, run_id, [{"action": "approve", "proposal_ids": [p["id"] for p in proposals]}])
+        repo.set_meeting_status(m["meeting_id"], "processed")
     return {
         "meeting_ids": [m["meeting_id"] for m in meetings],
         "unprocessed_meeting_id": meetings[2]["meeting_id"],

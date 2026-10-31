@@ -27,8 +27,9 @@ DECISION_INPUT_COLUMNS = (
 class SupabaseStore:
     """Persist agent graph reads and writes in Supabase."""
 
-    def __init__(self):
-        self.db = get_db()
+    @property
+    def db(self):
+        return get_db()  # per-thread client
 
     def get_meeting(self, meeting_id) -> dict:
         rows = (

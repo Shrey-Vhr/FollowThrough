@@ -6,7 +6,7 @@ import type { Brief, IssueType } from "./types";
 
 export const keys = {
   meetings: ["meetings"] as const,
-  meeting: (id: number) => ["meeting", id] as const,
+  meeting: (id: number | string) => ["meeting", id] as const,
   issues: (status?: string, type?: IssueType) => ["issues", status ?? "all", type ?? "all"] as const,
   tasks: (days?: number) => ["tasks", days ?? "all"] as const,
   proposals: (status?: string) => ["proposals", status ?? "all"] as const,
@@ -19,8 +19,8 @@ export const keys = {
 
 export const useMeetings = () => useQuery({ queryKey: keys.meetings, queryFn: ft.meetings });
 
-export const useMeeting = (id: number) =>
-  useQuery({ queryKey: keys.meeting(id), queryFn: () => ft.meeting(id), enabled: Number.isFinite(id) });
+export const useMeeting = (id: number | string) =>
+  useQuery({ queryKey: keys.meeting(id), queryFn: () => ft.meeting(id), enabled: id !== "" && !Number.isNaN(id) });
 
 export const useIssues = (status?: string, type?: IssueType) =>
   useQuery({ queryKey: keys.issues(status, type), queryFn: () => ft.issues({ status, type }) });

@@ -43,9 +43,9 @@ export function ConflictCard({ issue, onQuote }: { issue: ConflictIssue; onQuote
       </div>
 
       <div className="mt-3.5 grid gap-2 sm:grid-cols-[1fr_auto_1fr] sm:items-stretch">
-        <Side label={`Before (${formatShortDate(past.held_at)})`} text={past.statement} muted />
+        <Side label={`Before (${formatShortDate(past.held_at ?? past.meeting_date ?? "")})`} text={past.statement} muted />
         <ArrowRight className="hidden size-4 self-center text-muted-foreground sm:block" />
-        <Side label={`Now (${formatShortDate(now.held_at)})`} text={now.statement} />
+        <Side label={`Now (${formatShortDate(now.held_at ?? now.meeting_date ?? "")})`} text={now.statement} />
       </div>
 
       <p className="mt-3 text-[13px] leading-relaxed text-muted-foreground">{explanation}</p>
@@ -107,12 +107,12 @@ export function ConflictRow({ issue }: { issue: ConflictIssue }) {
         <p className="truncate text-[13px] font-medium">{issue.title}</p>
         <div className="mt-1.5 grid grid-cols-[1fr_auto_1fr] items-center gap-2 text-xs">
           <span className="min-w-0 truncate text-muted-foreground line-through decoration-foreground/20">
-            <span className="mr-1.5 font-mono text-[10.5px] no-underline">{formatShortDate(past.held_at)}</span>
+            <span className="mr-1.5 font-mono text-[10.5px] no-underline">{formatShortDate(past.held_at ?? past.meeting_date ?? "")}</span>
             {past.statement}
           </span>
           <ArrowRight className="size-3 text-muted-foreground" />
           <span className="min-w-0 truncate text-foreground/90">
-            <span className="mr-1.5 font-mono text-[10.5px] text-conflict">{formatShortDate(now.held_at)}</span>
+            <span className="mr-1.5 font-mono text-[10.5px] text-conflict">{formatShortDate(now.held_at ?? now.meeting_date ?? "")}</span>
             {now.statement}
           </span>
         </div>

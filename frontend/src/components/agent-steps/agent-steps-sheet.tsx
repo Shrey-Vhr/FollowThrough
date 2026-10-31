@@ -67,7 +67,7 @@ export function AgentStepsSheet({
             )}
             {steps.map((e, i) => (
               <StepItem
-                key={e.node}
+                key={`${e.node}-${i}`}
                 state={e.status === "error" ? "error" : "done"}
                 message={e.message}
                 node={e.node}

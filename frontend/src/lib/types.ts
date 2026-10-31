@@ -52,6 +52,8 @@ export interface DecisionView {
   statement: string;
   meeting_title: string;
   held_at: string;
+  /** the agents emit meeting_date (yyyy-mm-dd) instead of held_at */
+  meeting_date?: string;
   /** extension: lets the conflict card highlight the transcript line */
   source_quote?: string;
 }

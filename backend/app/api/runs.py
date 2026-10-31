@@ -46,6 +46,7 @@ async def execute_run(run_id: str, meeting_id: str, use_cache: bool, cache_path:
     proposals: list[dict] = []
     saw_review = False
     try:
+        await asyncio.to_thread(repo.set_meeting_status, meeting_id, "processing")
         graph = runtime.get_ingest_graph()
         async for item in start_run_stream(graph, meeting_id, run_id, use_cache=use_cache, cache_path=cache_path):
             if item["type"] == "event":
@@ -57,8 +58,10 @@ async def execute_run(run_id: str, meeting_id: str, use_cache: bool, cache_path:
         if not saw_review:  # the frontend closes its EventSource on human_review
             buf.push({"node": "human_review", "status": "done",
                       "message": f"{len(proposals)} proposals ready for review", "data": {"proposals": len(proposals)}})
+        await asyncio.to_thread(repo.set_meeting_status, meeting_id, "processed")
     except Exception as exc:  # noqa: BLE001
         logger.exception("run %s failed", run_id)
+        await asyncio.to_thread(repo.set_meeting_status, meeting_id, "imported")
         buf.push({"node": "error", "status": "error", "message": str(exc), "data": {}})
     finally:
         buf.finish()

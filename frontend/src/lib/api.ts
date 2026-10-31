@@ -106,10 +106,10 @@ const qs = (params: Record<string, string | number | undefined>) => {
 /** One typed function per endpoint in the API contract. */
 export const followthrough = {
   meetings: () => api<MeetingSummary[]>("/meetings"),
-  meeting: (id: number) => api<MeetingDetail>(`/meetings/${id}`),
-  process: (id: number) => api<{ run_id: string }>(`/meetings/${id}/process`, { method: "POST" }),
+  meeting: (id: number | string) => api<MeetingDetail>(`/meetings/${id}`),
+  process: (id: number | string) => api<{ run_id: string }>(`/meetings/${id}/process`, { method: "POST" }),
   issues: (p: { status?: string; type?: IssueType } = {}) => api<Issue[]>(`/issues${qs(p)}`),
-  patchIssue: (id: number, action: IssueAction) =>
+  patchIssue: (id: number | string, action: IssueAction) =>
     api<Issue>(`/issues/${id}`, { method: "PATCH", json: { action } }),
   tasks: (p: { due_within_days?: number } = {}) => api<Task[]>(`/tasks${qs(p)}`),
   proposals: (p: { status?: string } = {}) => api<Proposal[]>(`/proposals${qs(p)}`),
