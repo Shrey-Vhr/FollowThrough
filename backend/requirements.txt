@@ -8,3 +8,5 @@ pydantic>=2
 python-dotenv
 langchain_openai
 dotenv
+dateparser
+numpy
