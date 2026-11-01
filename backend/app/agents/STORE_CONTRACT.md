@@ -122,8 +122,8 @@ All tasks, filtered when given, ordered by `id`. Row: all task columns (`id, mee
 owner_id, deadline_raw, deadline, deadline_confidence, status, rollover_count, source_quote`) plus
 `owner_name` (people.name or null), `meeting_title`, `meeting_date` (`yyyy-mm-dd`).
 
-### `list_task_updates(task_id) -> list[dict]`
-`task_updates` rows for the task, oldest first: `{id, task_id, meeting_id, update_type, quote,
+### `list_task_updates(task_id=None) -> list[dict]`
+`task_updates` rows for the task (every task when `task_id` is None), oldest first: `{id, task_id, meeting_id, update_type, quote,
 meeting_title, meeting_date}`.
 
 ### `list_issues(status: str | None = None, issue_type: str | None = None) -> list[dict]`

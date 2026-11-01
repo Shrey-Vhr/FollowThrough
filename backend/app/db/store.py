@@ -438,11 +438,11 @@ class SupabaseStore:
         rows = self._task_rows(query.execute().data, self._meetings_by_id())
         return sorted(rows, key=lambda r: (r["meeting_date"] or "", r["title"]))
 
-    def list_task_updates(self, task_id) -> list[dict]:
-        updates = (
-            self.db.table("task_updates").select("id,task_id,meeting_id,update_type,quote,created_at")
-            .eq("task_id", task_id).order("id").execute().data
-        )
+    def list_task_updates(self, task_id=None) -> list[dict]:
+        query = self.db.table("task_updates").select("id,task_id,meeting_id,update_type,quote,created_at")
+        if task_id is not None:
+            query = query.eq("task_id", task_id)
+        updates = query.order("id").execute().data
         meetings = self._meetings_by_id()
         rows = []
         for u in updates:

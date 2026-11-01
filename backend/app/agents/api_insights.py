@@ -75,6 +75,9 @@ def commitments(today: date | None = None) -> list[dict[str, Any]]:
     store = runtime.get_store()
     today_iso = (today or date.today()).isoformat()
     tasks = store.list_tasks()
+    history: dict[Any, list[dict]] = {}
+    for u in store.list_task_updates():  # one query for every task instead of one per task
+        history.setdefault(u["task_id"], []).append(u)
     out = []
     for person in store.list_people():
         mine = [t for t in tasks if t.get("owner_id") == person["id"]]
@@ -89,7 +92,7 @@ def commitments(today: date | None = None) -> list[dict[str, Any]]:
             "total_rollovers": sum(t.get("rollover_count", 0) for t in mine),
             "follow_through_rate": len(completed) / len(mine) if mine else 0.0,
             "tasks": [
-                {**t, "overdue": is_overdue(t, today_iso), "history": store.list_task_updates(t["id"])}
+                {**t, "overdue": is_overdue(t, today_iso), "history": history.get(t["id"], [])}
                 for t in mine
             ],
         })
