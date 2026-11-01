@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useProposals } from "@/lib/queries";
+import { useHydrated } from "@/lib/use-hydrated";
 import { cn } from "@/lib/utils";
 import { Logo } from "./logo";
 import { NAV, isActive } from "./nav";
@@ -10,6 +11,7 @@ import { NAV, isActive } from "./nav";
 export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   const pending = useProposals("pending");
+  const hydrated = useHydrated();
   return (
     <div className="flex h-full flex-col">
       <div className="flex h-14 items-center px-5">
@@ -17,7 +19,7 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
       </div>
       <nav className="flex-1 space-y-0.5 px-3 pt-2" aria-label="Main">
         {NAV.map(({ href, label, icon: Icon, badge: staticBadge }) => {
-          const badge = href === "/review" ? pending.data?.length : staticBadge;
+          const badge = href === "/review" ? (hydrated ? pending.data?.length : undefined) : staticBadge;
           const active = isActive(href, pathname);
           return (
             <Link
