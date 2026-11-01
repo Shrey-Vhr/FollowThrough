@@ -9,4 +9,5 @@ async def main():
         print("-", m["id"], "|", m.get("title") or "(untitled)", "|", m.get("start"))
 
 
-asyncio.run(main())
+if __name__ == "__main__":
+    asyncio.run(main())
