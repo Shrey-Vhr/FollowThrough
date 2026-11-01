@@ -77,7 +77,8 @@ def commitments(today: date | None = None) -> list[dict[str, Any]]:
     tasks = store.list_tasks()
     history: dict[Any, list[dict]] = {}
     for u in store.list_task_updates():  # one query for every task instead of one per task
-        history.setdefault(u["task_id"], []).append(u)
+        # held_at is the field the frontend's CommitmentHistoryItem reads for the date.
+        history.setdefault(u["task_id"], []).append({**u, "held_at": u.get("meeting_date")})
     out = []
     for person in store.list_people():
         mine = [t for t in tasks if t.get("owner_id") == person["id"]]
