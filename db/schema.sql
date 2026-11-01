@@ -132,3 +132,16 @@ alter table briefs add column if not exists headline text, add column if not exi
 alter table proposals alter column meeting_id drop not null;
 alter table people add column if not exists email text;
 create index if not exists segments_meeting_idx on segments (meeting_id, idx);
+
+-- Security: lock every table behind RLS. The backend uses the secret key / direct Postgres
+-- connection (both bypass RLS), so this only blocks the public Data API (publishable/anon key).
+alter table people enable row level security;
+alter table meetings enable row level security;
+alter table segments enable row level security;
+alter table decisions enable row level security;
+alter table tasks enable row level security;
+alter table task_updates enable row level security;
+alter table issues enable row level security;
+alter table proposals enable row level security;
+alter table briefs enable row level security;
+alter table reminders enable row level security;

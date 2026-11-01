@@ -6,3 +6,6 @@ __pycache__/
 .venv/
 node_modules/
 backend/wispr_tokens.json
+*.pyc
+.next/
+backend/.venv/

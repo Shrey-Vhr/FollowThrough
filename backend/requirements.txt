@@ -1,17 +1,31 @@
 fastapi
 uvicorn[standard]
-langgraph
-langchain-openai
-langchain-core
-openai
+python-multipart
+sse-starlette
 pydantic>=2
 python-dotenv
-langchain_openai
-dotenv
-dateparser
-numpy
-supabase
-python-multipart
-mcp==1.30.0
 httpx
-sse-starlette
+
+# Agents / LLM
+langgraph
+langgraph-checkpoint-postgres
+langchain-core
+langchain-openai
+openai
+numpy
+dateparser
+
+# Database
+supabase
+psycopg[binary]
+psycopg-pool
+
+# Integrations
+mcp==1.30.0
+notion-client
+slack_sdk
+resend
+
+# Scheduling
+apscheduler>=3.10,<4
+tzdata

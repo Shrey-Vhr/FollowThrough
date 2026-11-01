@@ -123,13 +123,13 @@ def validate(state: VoiceState) -> dict:
             if a["action"] == "approve":
                 a["proposal_ids"] = [i for i in a["proposal_ids"] if i not in rejected]
         actions = [a for a in actions if a["proposal_ids"]]
-        warnings.append(f"{_ids(both, state["numbering"])} was both approved and rejected; I kept reject.")
+        warnings.append(f"{_ids(both, state['numbering'])} was both approved and rejected; I kept reject.")
 
     for a in actions:
         if a["action"] in ("reassign", "set_deadline"):
             off = [i for i in a["proposal_ids"] if kinds.get(i) != "notion_task"]
             if off:
-                warnings.append(f"{a['action']} only applies to tasks, but {_ids(off, state["numbering"])} is not a task.")
+                warnings.append(f"{a['action']} only applies to tasks, but {_ids(off, state['numbering'])} is not a task.")
     return {"actions": actions, "warnings": warnings}
 
 
