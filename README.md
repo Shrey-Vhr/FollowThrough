@@ -106,6 +106,16 @@ Backend (`backend/.env`, template in `backend/.env.example`):
 Frontend (`frontend/.env.local`): `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_USE_MOCKS`, `NEXT_PUBLIC_DEMO_MODE` (shows the "Simulate time" control).
 
 ## Team
-- **Shrey Vohra** – frontend (Next.js), LangGraph agents (ingest, voice parser, brief, digest), store contract, review-queue API, insights API.
-- **Pragti Aggarwal** – Supabase project and schema, FastAPI skeleton, transcript parser, paste/upload routes, Wispr MCP client and OAuth, first `SupabaseStore`.
-- Integration, live-run plumbing, Notion/Slack/email executor, reminders and end-to-end hardening were completed with Claude Code.
+
+**Shrey Vohra**
+- Product planning: problem framing, feature set and system architecture
+- LangGraph agent workflows: extraction, cross-meeting conflict detection, commitment tracking, voice-command parsing, pre-meeting briefs, weekly digests
+- Human-in-the-loop approval flow (LangGraph interrupts + Review Queue)
+- Wispr Flow Notetaker integration via its MCP server (OAuth, meeting listing, transcript import)
+- Notion, Slack and Resend integrations, reminders and scheduler
+- Frontend (Next.js), built with Claude Code as an AI coding partner
+
+**Pragti Aggarwal**
+- Supabase setup with pgvector for the agent's memory
+- FastAPI backend foundation and transcript parsing (paste/upload ingestion)
+- Co-designed the agentic workflows and co-recorded the test meetings with Wispr Notetaker
